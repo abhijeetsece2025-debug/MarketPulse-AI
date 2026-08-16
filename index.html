@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>MarketPulse AI</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f7fb;
+            color: #172033;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 22px;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        .container {
+            width: 92%;
+            max-width: 1400px;
+            margin: 25px auto;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 14px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            cursor: pointer;
+            background: #2563eb;
+            color: white;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .stocks {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .stocks button {
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .loading {
+            padding: 15px;
+            background: #fff7ed;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .error {
+            padding: 15px;
+            background: #fee2e2;
+            color: #991b1b;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: #6b7280;
+        }
+
+        .value {
+            font-size: 25px;
+            font-weight: bold;
+        }
+
+        .section {
+            margin-top: 25px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 15px;
+        }
+
+        .chart-container {
+            height: 400px;
+        }
+
+        .years {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .year-button {
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .year-button.active {
+            background: #2563eb;
+            color: white;
+        }
+
+        .indicator-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(170px, 1fr));
+            gap: 12px;
+        }
+
+        .indicator {
+            background: white;
+            padding: 16px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .indicator-title {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .indicator-value {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .news-item {
+            background: white;
+            padding: 16px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .news-item h3 {
+            margin: 0 0 8px 0;
+        }
+
+        .news-item a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        .news-meta {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<header>
+
+    <h1>MarketPulse AI</h1>
+
+    <p>
+        Bayesian Stock Prediction & Market Risk Analysis
+    </p>
+
+</header>
+
+
+<div class="container">
+
+    <!-- SEARCH -->
+
+    <div class="search-box">
+
+        <input
+            id="stockSymbol"
+            type="text"
+            placeholder="Enter stock symbol e.g. RELIANCE"
+        >
+
+        <button id="analyzeButton">
+            Analyze
+        </button>
+
+    </div>
+
+
+    <!-- QUICK STOCKS -->
+
+    <div class="stocks">
+
+        <button onclick="selectStock('RELIANCE')">
+            RELIANCE
+        </button>
+
+        <button onclick="selectStock('TCS')">
+            TCS
+        </button>
+
+        <button onclick="selectStock('INFY')">
+            INFY
+        </button>
+
+        <button onclick="selectStock('ITC')">
+            ITC
+        </button>
+
+        <button onclick="selectStock('HDFCBANK')">
+            HDFC BANK
+        </button>
+
+        <button onclick="selectStock('SBIN')">
+            SBI
+        </button>
+
+    </div>
+
+
+    <!-- LOADING -->
+
+    <div
+        id="loading"
+        class="loading hidden"
+    >
+        Analysing stock using Bayesian AI...
+    </div>
+
+
+    <!-- ERROR -->
+
+    <div
+        id="errorBox"
+        class="error hidden"
+    >
+
+        <strong>Error:</strong>
+
+        <span id="errorMessage"></span>
+
+    </div>
+
+
+    <!-- DASHBOARD -->
+
+    <div
+        id="dashboard"
+        class="hidden"
+    >
+
+        <div class="section">
+
+            <h2 id="stockName">
+                Stock
+            </h2>
+
+            <div class="summary-grid">
+
+                <div class="card">
+
+                    <h3>Current Price</h3>
+
+                    <div
+                        id="currentPrice"
+                        class="value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <h3>5-Day Forecast</h3>
+
+                    <div
+                        id="forecastPrice"
+                        class="value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <h3>Forecast Change</h3>
+
+                    <div
+                        id="forecastChange"
+                        class="value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <h3>Historical Records</h3>
+
+                    <div
+                        id="historicalRecords"
+                        class="value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- HISTORY -->
+
+        <div class="section">
+
+            <h2>Historical Price</h2>
+
+            <div class="years">
+
+                <button
+                    class="year-button active"
+                    data-year="all"
+                >
+                    5 Years
+                </button>
+
+                <button
+                    class="year-button"
+                    data-year="2026"
+                >
+                    2026
+                </button>
+
+                <button
+                    class="year-button"
+                    data-year="2025"
+                >
+                    2025
+                </button>
+
+                <button
+                    class="year-button"
+                    data-year="2024"
+                >
+                    2024
+                </button>
+
+                <button
+                    class="year-button"
+                    data-year="2023"
+                >
+                    2023
+                </button>
+
+                <button
+                    class="year-button"
+                    data-year="2022"
+                >
+                    2022
+                </button>
+
+            </div>
+
+            <div class="chart-card">
+
+                <div class="chart-container">
+
+                    <canvas id="historyChart"></canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- PREDICTION -->
+
+        <div class="section">
+
+            <h2>Bayesian Prediction</h2>
+
+            <div class="chart-card">
+
+                <div class="chart-container">
+
+                    <canvas id="predictionChart"></canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- INDICATORS -->
+
+        <div class="section">
+
+            <h2>Technical Indicators</h2>
+
+            <div class="indicator-grid">
+
+                <div class="indicator">
+                    <div class="indicator-title">RSI (14)</div>
+                    <div id="rsi" class="indicator-value">—</div>
+                </div>
+
+                <div class="indicator">
+                    <div class="indicator-title">SMA (20)</div>
+                    <div id="sma20" class="indicator-value">—</div>
+                </div>
+
+                <div class="indicator">
+                    <div class="indicator-title">SMA (50)</div>
+                    <div id="sma50" class="indicator-value">—</div>
+                </div>
+
+                <div class="indicator">
+                    <div class="indicator-title">EMA (20)</div>
+                    <div id="ema20" class="indicator-value">—</div>
+                </div>
+
+                <div class="indicator">
+                    <div class="indicator-title">EMA (50)</div>
+                    <div id="ema50" class="indicator-value">—</div>
+                </div>
+
+                <div class="indicator">
+                    <div class="indicator-title">MACD</div>
+                    <div id="macd" class="indicator-value">—</div>
+                </div>
+
+                <div class="indicator">
+                    <div class="indicator-title">MACD Signal</div>
+                    <div id="macdSignal" class="indicator-value">—</div>
+                </div>
+
+                <div class="indicator">
+                    <div class="indicator-title">Volatility (20)</div>
+                    <div id="volatility" class="indicator-value">—</div>
+                </div>
+
+                <div class="indicator">
+                    <div class="indicator-title">Momentum (10)</div>
+                    <div id="momentum" class="indicator-value">—</div>
+                </div>
+
+                <div class="indicator">
+                    <div class="indicator-title">ATR (14)</div>
+                    <div id="atr" class="indicator-value">—</div>
+                </div>
+
+                <div class="indicator">
+                    <div class="indicator-title">Stochastic %K</div>
+                    <div id="stochastic" class="indicator-value">—</div>
+                </div>
+
+                <div class="indicator">
+                    <div class="indicator-title">Relative Volume</div>
+                    <div id="relativeVolume" class="indicator-value">—</div>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- RISK -->
+
+        <div class="section">
+
+            <h2>Market Risk Analysis</h2>
+
+            <div class="summary-grid">
+
+                <div class="card">
+
+                    <h3>Market Direction</h3>
+
+                    <div
+                        id="marketDirection"
+                        class="value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+                <div class="card">
+
+                    <h3>Prediction Confidence</h3>
+
+                    <div
+                        id="riskMomentum"
+                        class="value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+                <div class="card">
+
+                    <h3>Risk Level</h3>
+
+                    <div
+                        id="riskLevel"
+                        class="value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- NEWS -->
+
+        <div class="section">
+
+            <h2>Latest Company News</h2>
+
+            <div id="newsContainer">
+
+                <p>
+                    Analyse a stock to load news.
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script src="/static/script.js"></script>
+
+</body>
+
+</html>
