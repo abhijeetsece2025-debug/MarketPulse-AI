@@ -4,8 +4,6 @@
 
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 import numpy as np
 
@@ -16,27 +14,8 @@ import numpy as np
 
 app = FastAPI(
     title="MarketPulse AI",
+    description="Bayesian Stock Prediction API",
     version="1.0.0"
-)
-
-
-# ============================================================
-# STATIC FILES
-# ============================================================
-
-app.mount(
-    "/static",
-    StaticFiles(directory="static"),
-    name="static"
-)
-
-
-# ============================================================
-# HTML TEMPLATES
-# ============================================================
-
-templates = Jinja2Templates(
-    directory="templates"
 )
 
 
@@ -45,46 +24,78 @@ templates = Jinja2Templates(
 # ============================================================
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
+async def home():
 
-    try:
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>MarketPulse AI</title>
 
-        return templates.TemplateResponse(
-            request=request,
-            name="index.html",
-            context={
-                "request": request
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1.0">
+
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background: #f5f7fa;
+                text-align: center;
+                padding: 50px;
             }
-        )
 
-    except Exception as error:
+            .container {
+                max-width: 600px;
+                margin: auto;
+                background: white;
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }
 
-        print("\n==============================")
-        print("HOME PAGE ERROR")
-        print("==============================")
-        print(repr(error))
-        print("==============================\n")
+            h1 {
+                margin-bottom: 10px;
+            }
 
-        return HTMLResponse(
-            content=f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>MarketPulse AI</title>
-            </head>
-            <body>
+            .status {
+                color: green;
+                font-weight: bold;
+            }
 
-                <h1>MarketPulse AI</h1>
+            a {
+                display: block;
+                margin: 15px;
+                text-decoration: none;
+            }
+        </style>
+    </head>
 
-                <h2>Homepage Error</h2>
+    <body>
 
-                <pre>{error}</pre>
+        <div class="container">
 
-            </body>
-            </html>
-            """,
-            status_code=500
-        )
+            <h1>MarketPulse AI</h1>
+
+            <p class="status">
+                API is running successfully
+            </p>
+
+            <p>
+                Bayesian Stock Prediction System
+            </p>
+
+            <a href="/docs">
+                Open API Documentation
+            </a>
+
+            <a href="/health">
+                Health Check
+            </a>
+
+        </div>
+
+    </body>
+    </html>
+    """
 
 
 # ============================================================
@@ -133,8 +144,7 @@ async def predict(request: Request):
                 status_code=400,
                 content={
                     "success": False,
-                    "error":
-                        "Stock symbol is required."
+                    "error": "Stock symbol is required."
                 }
             )
 
@@ -495,7 +505,9 @@ async def predict(request: Request):
             )
 
 
-            # Fallback so dashboard can still load
+            # ------------------------------------------------
+            # FALLBACK
+            # ------------------------------------------------
 
             last_price = float(
                 prices[-1]
@@ -564,7 +576,11 @@ async def predict(request: Request):
         print("\n==============================")
         print("PREDICTION ERROR")
         print("==============================")
-        print(repr(error))
+
+        import traceback
+
+        traceback.print_exc()
+
         print("==============================\n")
 
 
@@ -695,11 +711,14 @@ async def startup():
     print("==========================================")
     print("       MARKETPULSE AI STARTED")
     print("==========================================")
-    print("Chrome:")
+    print("API:")
     print("http://127.0.0.1:8000")
     print("")
     print("Health:")
     print("http://127.0.0.1:8000/health")
+    print("")
+    print("Docs:")
+    print("http://127.0.0.1:8000/docs")
     print("")
     print("News:")
     print("http://127.0.0.1:8000/news/RELIANCE")
