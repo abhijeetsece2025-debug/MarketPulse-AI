@@ -1,11 +1,13 @@
 # ============================================================
-# MARKETPULSE AI - COMPLETE API
+# MARKETPULSE AI - COMPLETE FASTAPI
 # ============================================================
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 import numpy as np
+import os
 
 
 # ============================================================
@@ -14,8 +16,36 @@ import numpy as np
 
 app = FastAPI(
     title="MarketPulse AI",
-    description="Bayesian Stock Prediction API",
-    version="1.0.0"
+    version="1.0.0",
+    description="Bayesian Stock Prediction and Market Analysis API"
+)
+
+
+# ============================================================
+# PROJECT DIRECTORY
+# ============================================================
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+# ============================================================
+# STATIC FILES
+# ============================================================
+# Your project has:
+#
+# index.html
+# script.js
+# style.css
+#
+# directly inside the project folder.
+#
+# Therefore we serve the project folder as /static.
+# ============================================================
+
+app.mount(
+    "/static",
+    StaticFiles(directory=BASE_DIR),
+    name="static"
 )
 
 
@@ -26,76 +56,41 @@ app = FastAPI(
 @app.get("/", response_class=HTMLResponse)
 async def home():
 
-    return """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>MarketPulse AI</title>
+    index_file = os.path.join(
+        BASE_DIR,
+        "index.html"
+    )
 
-        <meta name="viewport"
-              content="width=device-width, initial-scale=1.0">
+    if not os.path.exists(index_file):
 
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                background: #f5f7fa;
-                text-align: center;
-                padding: 50px;
-            }
+        return HTMLResponse(
+            content="""
+            <html>
+                <head>
+                    <title>MarketPulse AI</title>
+                </head>
 
-            .container {
-                max-width: 600px;
-                margin: auto;
-                background: white;
-                padding: 30px;
-                border-radius: 12px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            }
+                <body>
 
-            h1 {
-                margin-bottom: 10px;
-            }
+                    <h1>MarketPulse AI</h1>
 
-            .status {
-                color: green;
-                font-weight: bold;
-            }
+                    <h2>index.html not found</h2>
 
-            a {
-                display: block;
-                margin: 15px;
-                text-decoration: none;
-            }
-        </style>
-    </head>
+                    <p>
+                        Please make sure index.html
+                        exists in the project folder.
+                    </p>
 
-    <body>
+                </body>
+            </html>
+            """,
+            status_code=500
+        )
 
-        <div class="container">
-
-            <h1>MarketPulse AI</h1>
-
-            <p class="status">
-                API is running successfully
-            </p>
-
-            <p>
-                Bayesian Stock Prediction System
-            </p>
-
-            <a href="/docs">
-                Open API Documentation
-            </a>
-
-            <a href="/health">
-                Health Check
-            </a>
-
-        </div>
-
-    </body>
-    </html>
-    """
+    return FileResponse(
+        index_file,
+        media_type="text/html"
+    )
 
 
 # ============================================================
@@ -122,16 +117,21 @@ async def predict(request: Request):
     try:
 
         # ----------------------------------------------------
-        # READ JSON
+        # READ REQUEST
         # ----------------------------------------------------
 
         body = await request.json()
 
-        print("\n==============================")
+        print()
+        print("==============================")
         print("PREDICTION REQUEST")
         print("==============================")
         print(body)
 
+
+        # ----------------------------------------------------
+        # GET SYMBOL
+        # ----------------------------------------------------
 
         symbol = str(
             body.get("symbol", "")
@@ -177,10 +177,21 @@ async def predict(request: Request):
         loader = CombinedLoader()
 
 
-        data_frame = loader.prepare_stock_data(
-            symbol,
-            period="5y"
-        )
+        try:
+
+            data_frame = loader.prepare_stock_data(
+                symbol,
+                period="5y"
+            )
+
+        except TypeError:
+
+            # Compatibility with loaders that
+            # don't accept period argument.
+
+            data_frame = loader.prepare_stock_data(
+                symbol
+            )
 
 
         if (
@@ -192,8 +203,7 @@ async def predict(request: Request):
                 status_code=404,
                 content={
                     "success": False,
-                    "error":
-                        f"No stock data found for {symbol}."
+                    "error": f"No stock data found for {symbol}."
                 }
             )
 
@@ -203,16 +213,15 @@ async def predict(request: Request):
             len(data_frame)
         )
 
-
         print(
             "Columns:",
             list(data_frame.columns)
         )
 
 
-        # ----------------------------------------------------
-        # FIND CLOSE COLUMN
-        # ----------------------------------------------------
+        # ====================================================
+        # FIND CLOSE PRICE
+        # ====================================================
 
         if "ClsPric" in data_frame.columns:
 
@@ -228,26 +237,50 @@ async def predict(request: Request):
                 status_code=500,
                 content={
                     "success": False,
-                    "error":
-                        "Closing price column not found."
+                    "error": "Closing price column not found."
                 }
             )
 
 
-        # ----------------------------------------------------
-        # GET PRICES
-        # ----------------------------------------------------
+        # ====================================================
+        # CLEAN PRICE DATA
+        # ====================================================
 
-        prices = (
-            data_frame[price_column]
-            .astype(float)
-            .replace(
-                [np.inf, -np.inf],
-                np.nan
-            )
-            .dropna()
-            .tolist()
+        clean_data = data_frame.copy()
+
+
+        clean_data[price_column] = np.asarray(
+            clean_data[price_column],
+            dtype=float
         )
+
+
+        clean_data = clean_data.replace(
+            [np.inf, -np.inf],
+            np.nan
+        )
+
+
+        clean_data = clean_data.dropna(
+            subset=[price_column]
+        )
+
+
+        if clean_data.empty:
+
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "success": False,
+                    "error": "No valid closing price data found."
+                }
+            )
+
+
+        prices = [
+            float(value)
+            for value in clean_data[price_column].tolist()
+        ]
 
 
         if len(prices) < 60:
@@ -256,28 +289,27 @@ async def predict(request: Request):
                 status_code=400,
                 content={
                     "success": False,
-                    "error":
-                        "Not enough historical data."
+                    "error": "Not enough historical data."
                 }
             )
 
 
-        # ----------------------------------------------------
-        # GET DATES
-        # ----------------------------------------------------
+        # ====================================================
+        # HISTORICAL DATES
+        # ====================================================
 
-        if "TradDt" in data_frame.columns:
+        if "TradDt" in clean_data.columns:
 
             historical_dates = [
                 str(value)
-                for value in data_frame["TradDt"]
+                for value in clean_data["TradDt"].tolist()
             ]
 
-        elif "Date" in data_frame.columns:
+        elif "Date" in clean_data.columns:
 
             historical_dates = [
                 str(value)
-                for value in data_frame["Date"]
+                for value in clean_data["Date"].tolist()
             ]
 
         else:
@@ -288,9 +320,7 @@ async def predict(request: Request):
             ]
 
 
-        # ----------------------------------------------------
-        # KEEP LENGTHS SAME
-        # ----------------------------------------------------
+        # Keep same length
 
         minimum_length = min(
             len(prices),
@@ -320,8 +350,10 @@ async def predict(request: Request):
             from indicators import calculate_indicators
 
 
-            indicator_data = data_frame.copy()
+            indicator_data = clean_data.copy()
 
+
+            # indicators.py expects Close
 
             if "ClsPric" in indicator_data.columns:
 
@@ -377,45 +409,34 @@ async def predict(request: Request):
 
                     "macd_signal":
                         safe_number(
-                            latest.get(
-                                "MACD_Signal"
-                            )
+                            latest.get("MACD_Signal")
                         ),
 
                     "volatility_20":
                         safe_number(
-                            latest.get(
-                                "Volatility_20"
-                            )
+                            latest.get("Volatility_20")
                         ),
 
                     "momentum_10":
                         safe_number(
-                            latest.get(
-                                "Momentum_10"
-                            )
+                            latest.get("Momentum_10")
                         ),
 
                     "atr_14":
                         safe_number(
-                            latest.get(
-                                "ATR_14"
-                            )
+                            latest.get("ATR_14")
                         ),
 
                     "stochastic_k":
                         safe_number(
-                            latest.get(
-                                "Stochastic_K"
-                            )
+                            latest.get("Stochastic_K")
                         ),
 
                     "relative_volume":
                         safe_number(
-                            latest.get(
-                                "Relative_Volume"
-                            )
+                            latest.get("Relative_Volume")
                         )
+
                 }
 
 
@@ -436,10 +457,12 @@ async def predict(request: Request):
 
         try:
 
-            from bayesian_stock import (
-                BayesianStockModel
-            )
+            from bayesian_stock import BayesianStockModel
 
+
+            # ------------------------------------------------
+            # TRAINING DATA
+            # ------------------------------------------------
 
             X = np.arange(
                 len(prices),
@@ -456,14 +479,26 @@ async def predict(request: Request):
             )
 
 
+            # ------------------------------------------------
+            # CREATE MODEL
+            # ------------------------------------------------
+
             model = BayesianStockModel()
 
+
+            # ------------------------------------------------
+            # TRAIN
+            # ------------------------------------------------
 
             model.train(
                 X,
                 y
             )
 
+
+            # ------------------------------------------------
+            # FUTURE DAYS
+            # ------------------------------------------------
 
             future_X = np.arange(
                 len(prices),
@@ -474,6 +509,10 @@ async def predict(request: Request):
                 1
             )
 
+
+            # ------------------------------------------------
+            # PREDICT
+            # ------------------------------------------------
 
             prediction_result = model.predict(
                 future_X
@@ -497,12 +536,32 @@ async def predict(request: Request):
             ]
 
 
+            # Make sure exactly 5 predictions exist
+
+            if len(predictions) < 5:
+
+                last_price = float(
+                    prices[-1]
+                )
+
+                while len(predictions) < 5:
+
+                    predictions.append(
+                        last_price
+                    )
+
+
+            predictions = predictions[:5]
+
+
         except Exception as error:
 
-            print(
-                "Bayesian prediction error:",
-                repr(error)
-            )
+            print()
+            print("==============================")
+            print("Bayesian prediction error")
+            print("==============================")
+            print(repr(error))
+            print("==============================")
 
 
             # ------------------------------------------------
@@ -515,11 +574,13 @@ async def predict(request: Request):
 
 
             predictions = [
+
                 last_price,
                 last_price,
                 last_price,
                 last_price,
                 last_price
+
             ]
 
 
@@ -573,15 +634,12 @@ async def predict(request: Request):
 
     except Exception as error:
 
-        print("\n==============================")
+        print()
+        print("==============================")
         print("PREDICTION ERROR")
         print("==============================")
-
-        import traceback
-
-        traceback.print_exc()
-
-        print("==============================\n")
+        print(repr(error))
+        print("==============================")
 
 
         return JSONResponse(
@@ -707,20 +765,26 @@ def safe_number(value):
 @app.on_event("startup")
 async def startup():
 
-    print("")
+    print()
     print("==========================================")
     print("       MARKETPULSE AI STARTED")
     print("==========================================")
-    print("API:")
+
+    print()
+    print("Dashboard:")
     print("http://127.0.0.1:8000")
-    print("")
+
+    print()
     print("Health:")
     print("http://127.0.0.1:8000/health")
-    print("")
-    print("Docs:")
+
+    print()
+    print("Swagger:")
     print("http://127.0.0.1:8000/docs")
-    print("")
+
+    print()
     print("News:")
     print("http://127.0.0.1:8000/news/RELIANCE")
+
     print("==========================================")
-    print("")
+    print()
