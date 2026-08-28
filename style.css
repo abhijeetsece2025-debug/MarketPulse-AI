@@ -1,3 +1,7 @@
+/* =========================================================
+   MarketPulse AI - Main Stylesheet
+   ========================================================= */
+
 * {
     box-sizing: border-box;
 }
@@ -14,15 +18,21 @@ body {
         sans-serif;
     background: #f5f7fb;
     color: #172033;
+    font-size: 16px;
 }
+
+/* =========================================================
+   TOP HEADER
+   ========================================================= */
 
 .top-header {
     background: #111827;
     color: white;
-    padding: 18px 6%;
+    padding: 22px 4%;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    min-height: 80px;
 }
 
 .brand {
@@ -32,25 +42,27 @@ body {
 }
 
 .logo {
-    width: 50px;
-    height: 50px;
+    width: 52px;
+    height: 52px;
     border-radius: 12px;
     background: #2563eb;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 18px;
+    font-size: 19px;
+    flex-shrink: 0;
 }
 
 .brand h1 {
     margin: 0;
-    font-size: 24px;
+    font-size: 30px;
+    font-weight: 700;
 }
 
 .brand span {
     color: #aab4c5;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .market-status {
@@ -67,9 +79,13 @@ body {
     margin-right: 6px;
 }
 
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
 .main-nav {
     background: white;
-    padding: 10px 6%;
+    padding: 12px 4%;
     display: flex;
     gap: 8px;
     border-bottom: 1px solid #e5e7eb;
@@ -81,11 +97,12 @@ body {
 .main-nav button {
     border: none;
     background: transparent;
-    padding: 10px 15px;
+    padding: 11px 17px;
     border-radius: 8px;
     cursor: pointer;
     color: #374151;
     font-weight: 600;
+    font-size: 14px;
 }
 
 .main-nav button:hover {
@@ -93,43 +110,54 @@ body {
     color: #2563eb;
 }
 
+/* =========================================================
+   MAIN CONTENT
+   ========================================================= */
+
 main {
-    width: 88%;
-    max-width: 1250px;
+    width: 94%;
+    max-width: 1600px;
     margin: 30px auto;
 }
+
+/* =========================================================
+   SEARCH PANEL
+   ========================================================= */
 
 .search-panel {
     background: white;
     border-radius: 16px;
-    padding: 28px;
-    margin-bottom: 24px;
+    padding: 30px;
+    margin-bottom: 26px;
     box-shadow:
         0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .search-panel h2 {
     margin: 0 0 8px;
+    font-size: 25px;
 }
 
 .search-panel p {
     margin: 0;
     color: #6b7280;
+    font-size: 15px;
 }
 
 .search-box {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     margin-top: 24px;
 }
 
 .search-box input {
     flex: 1;
-    padding: 14px 16px;
+    padding: 15px 17px;
     border: 1px solid #d1d5db;
     border-radius: 9px;
     font-size: 16px;
     outline: none;
+    min-width: 0;
 }
 
 .search-box input:focus {
@@ -137,13 +165,15 @@ main {
 }
 
 .search-box button {
-    padding: 14px 25px;
+    padding: 15px 28px;
     border: none;
     border-radius: 9px;
     background: #2563eb;
     color: white;
     font-weight: bold;
+    font-size: 15px;
     cursor: pointer;
+    min-width: 100px;
 }
 
 .search-box button:hover {
@@ -155,8 +185,12 @@ main {
     cursor: not-allowed;
 }
 
+/* =========================================================
+   POPULAR STOCKS
+   ========================================================= */
+
 .popular {
-    margin-top: 15px;
+    margin-top: 16px;
     color: #6b7280;
     font-size: 14px;
 }
@@ -164,15 +198,22 @@ main {
 .popular button {
     border: 1px solid #dbe3f0;
     background: #f8fafc;
-    padding: 7px 13px;
-    margin-left: 5px;
+    padding: 8px 14px;
+    margin-left: 6px;
+    margin-bottom: 5px;
     border-radius: 7px;
     cursor: pointer;
+    font-weight: 600;
 }
 
 .popular button:hover {
     background: #e8efff;
+    color: #2563eb;
 }
+
+/* =========================================================
+   LOADING
+   ========================================================= */
 
 .loading {
     background: white;
@@ -202,6 +243,10 @@ main {
     }
 }
 
+/* =========================================================
+   ERROR
+   ========================================================= */
+
 .error {
     background: #fef2f2;
     color: #991b1b;
@@ -215,18 +260,22 @@ main {
     margin-right: 10px;
 }
 
+/* =========================================================
+   STOCK SUMMARY CARDS
+   ========================================================= */
+
 .stock-summary {
     display: grid;
-    grid-template-columns:
-        repeat(4, 1fr);
-    gap: 15px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 24px;
 }
 
 .stock-summary > div {
     background: white;
     border-radius: 14px;
-    padding: 20px;
+    padding: 23px;
+    min-height: 115px;
     box-shadow:
         0 4px 20px rgba(0, 0, 0, 0.05);
 }
@@ -234,25 +283,29 @@ main {
 .stock-summary small {
     display: block;
     color: #6b7280;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: bold;
-    margin-bottom: 8px;
+    margin-bottom: 9px;
 }
 
 .stock-summary h2 {
     margin: 0;
-    font-size: 24px;
+    font-size: 27px;
 }
 
 .stock-summary strong {
-    font-size: 22px;
+    font-size: 24px;
 }
+
+/* =========================================================
+   GENERAL PANELS
+   ========================================================= */
 
 .panel {
     background: white;
     border-radius: 16px;
-    padding: 25px;
-    margin-bottom: 22px;
+    padding: 28px;
+    margin-bottom: 25px;
     box-shadow:
         0 4px 20px rgba(0, 0, 0, 0.05);
 }
@@ -261,11 +314,12 @@ main {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 22px;
 }
 
 .panel-title h2 {
     margin: 0 0 5px;
+    font-size: 24px;
 }
 
 .panel-title p {
@@ -277,16 +331,29 @@ main {
 .ai-badge {
     background: #eef2ff;
     color: #3730a3;
-    padding: 8px 12px;
+    padding: 8px 13px;
     border-radius: 20px;
     font-size: 12px;
     font-weight: bold;
 }
 
+/* =========================================================
+   CHARTS
+   ========================================================= */
+
 .chart-container {
-    height: 380px;
+    height: 450px;
+    width: 100%;
     position: relative;
 }
+
+.chart-container canvas {
+    max-width: 100%;
+}
+
+/* =========================================================
+   TABLE
+   ========================================================= */
 
 .table-wrapper {
     overflow-x: auto;
@@ -300,7 +367,7 @@ table {
 
 th,
 td {
-    padding: 13px;
+    padding: 14px;
     text-align: left;
     border-bottom: 1px solid #e5e7eb;
 }
@@ -310,21 +377,25 @@ th {
     color: #4b5563;
 }
 
+/* =========================================================
+   INDICATORS
+   ========================================================= */
+
 .indicators {
     display: grid;
-    grid-template-columns:
-        repeat(4, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
 }
 
 .indicators > div {
     background: #f8fafc;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
-    padding: 15px;
+    padding: 16px;
     display: flex;
     justify-content: space-between;
     gap: 10px;
+    min-height: 55px;
 }
 
 .indicators span {
@@ -334,19 +405,23 @@ th {
 
 .indicators b {
     color: #111827;
+    font-size: 14px;
 }
+
+/* =========================================================
+   RISK SECTION
+   ========================================================= */
 
 .risk {
     display: grid;
-    grid-template-columns:
-        repeat(3, 1fr);
-    gap: 15px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
 }
 
 .risk > div {
     background: #f8fafc;
     border-radius: 12px;
-    padding: 20px;
+    padding: 22px;
 }
 
 .risk span {
@@ -356,23 +431,27 @@ th {
 }
 
 .risk b {
-    font-size: 20px;
+    font-size: 21px;
 }
+
+/* =========================================================
+   NEWS
+   ========================================================= */
 
 .news-container {
     display: grid;
-    gap: 12px;
+    gap: 13px;
 }
 
 .news-item {
     border: 1px solid #e5e7eb;
     border-radius: 10px;
-    padding: 15px;
+    padding: 16px;
 }
 
 .news-item h3 {
     margin: 0 0 8px;
-    font-size: 16px;
+    font-size: 17px;
 }
 
 .news-item a {
@@ -393,12 +472,16 @@ th {
     padding: 15px;
 }
 
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
 footer {
     background: #111827;
     color: #d1d5db;
     text-align: center;
-    padding: 25px;
-    margin-top: 40px;
+    padding: 28px;
+    margin-top: 45px;
 }
 
 footer strong {
@@ -410,59 +493,238 @@ footer span {
     color: #9ca3af;
 }
 
+/* =========================================================
+   HIDDEN
+   ========================================================= */
+
 .hidden {
     display: none !important;
 }
 
-@media (max-width: 900px) {
+/* =========================================================
+   LARGE SCREENS
+   ========================================================= */
 
-    .stock-summary {
-        grid-template-columns:
-            repeat(2, 1fr);
+@media (min-width: 1600px) {
+
+    main {
+        width: 92%;
+        max-width: 1700px;
     }
 
-    .indicators {
-        grid-template-columns:
-            repeat(2, 1fr);
+    .search-panel {
+        padding: 32px;
     }
 
-    .risk {
-        grid-template-columns:
-            1fr;
+    .panel {
+        padding: 30px;
+    }
+
+    .chart-container {
+        height: 480px;
     }
 }
 
-@media (max-width: 600px) {
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 1100px) {
+
+    main {
+        width: 92%;
+    }
+
+    .stock-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .indicators {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .risk {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .chart-container {
+        height: 400px;
+    }
+}
+
+/* =========================================================
+   SMALL TABLET
+   ========================================================= */
+
+@media (max-width: 900px) {
 
     .top-header {
-        padding: 15px;
+        padding: 18px 4%;
+    }
+
+    .brand h1 {
+        font-size: 26px;
+    }
+
+    main {
+        width: 92%;
+        margin: 25px auto;
+    }
+
+    .stock-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .indicators {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .risk {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-container {
+        height: 380px;
+    }
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    body {
+        font-size: 15px;
+    }
+
+    .top-header {
+        padding: 16px;
+        min-height: auto;
+    }
+
+    .brand {
+        gap: 10px;
+    }
+
+    .logo {
+        width: 44px;
+        height: 44px;
+        font-size: 16px;
+    }
+
+    .brand h1 {
+        font-size: 22px;
+    }
+
+    .brand span {
+        font-size: 12px;
+    }
+
+    .market-status {
+        display: none;
     }
 
     .main-nav {
         padding: 8px;
         overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .main-nav button {
+        padding: 9px 12px;
+        font-size: 13px;
     }
 
     main {
         width: 94%;
+        margin: 20px auto;
+    }
+
+    .search-panel {
+        padding: 20px;
+    }
+
+    .search-panel h2 {
+        font-size: 21px;
     }
 
     .search-box {
         flex-direction: column;
     }
 
-    .stock-summary {
-        grid-template-columns:
-            1fr;
+    .search-box input {
+        width: 100%;
     }
 
-    .indicators {
-        grid-template-columns:
-            1fr;
+    .search-box button {
+        width: 100%;
+    }
+
+    .stock-summary {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .stock-summary > div {
+        padding: 18px;
+    }
+
+    .stock-summary h2 {
+        font-size: 23px;
+    }
+
+    .panel {
+        padding: 18px;
+        border-radius: 12px;
+    }
+
+    .panel-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .panel-title h2 {
+        font-size: 21px;
     }
 
     .chart-container {
         height: 300px;
     }
 
+    .indicators {
+        grid-template-columns: 1fr;
+    }
+
+    .risk {
+        grid-template-columns: 1fr;
+    }
+
+    .popular button {
+        margin-top: 5px;
+    }
+
+    footer {
+        padding: 22px 15px;
+    }
+}
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+    .brand h1 {
+        font-size: 19px;
+    }
+
+    .brand span {
+        display: none;
+    }
+
+    .chart-container {
+        height: 270px;
+    }
 }
