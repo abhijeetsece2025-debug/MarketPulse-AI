@@ -1,52 +1,76 @@
 # ============================================================
 # MARKETPULSE AI - COMPLETE FASTAPI
+# Works with files directly in the project root
 # ============================================================
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
-
-import numpy as np
-import os
-
-
-# ============================================================
-# CREATE APP
-# ============================================================
-
-app = FastAPI(
-    title="MarketPulse AI",
-    version="1.0.0",
-    description="Bayesian Stock Prediction and Market Analysis API"
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    FileResponse,
 )
+from fastapi.middleware.cors import CORSMiddleware
+
+from pathlib import Path
+import numpy as np
 
 
 # ============================================================
 # PROJECT DIRECTORY
 # ============================================================
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = Path(__file__).resolve().parent
+
+INDEX_FILE = BASE_DIR / "index.html"
+CSS_FILE = BASE_DIR / "style.css"
+JS_FILE = BASE_DIR / "script.js"
 
 
 # ============================================================
-# STATIC FILES
-# ============================================================
-# Your project has:
-#
-# index.html
-# script.js
-# style.css
-#
-# directly inside the project folder.
-#
-# Therefore we serve the project folder as /static.
+# CREATE FASTAPI APP
 # ============================================================
 
-app.mount(
-    "/static",
-    StaticFiles(directory=BASE_DIR),
-    name="static"
+app = FastAPI(
+    title="MarketPulse AI",
+    description="Bayesian AI Stock Prediction and Market Analysis",
+    version="1.0.0"
 )
+
+
+# ============================================================
+# CORS
+# ============================================================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ============================================================
+# SAFE NUMBER
+# ============================================================
+
+def safe_number(value):
+
+    try:
+
+        if value is None:
+            return None
+
+        number = float(value)
+
+        if not np.isfinite(number):
+            return None
+
+        return number
+
+    except Exception:
+
+        return None
 
 
 # ============================================================
@@ -56,16 +80,13 @@ app.mount(
 @app.get("/", response_class=HTMLResponse)
 async def home():
 
-    index_file = os.path.join(
-        BASE_DIR,
-        "index.html"
-    )
+    try:
 
-    if not os.path.exists(index_file):
+        if not INDEX_FILE.exists():
 
-        return HTMLResponse(
-            content="""
-            <html>
+            return HTMLResponse(
+                content="""
+                <html>
                 <head>
                     <title>MarketPulse AI</title>
                 </head>
@@ -77,19 +98,90 @@ async def home():
                     <h2>index.html not found</h2>
 
                     <p>
-                        Please make sure index.html
-                        exists in the project folder.
+                        Please make sure index.html is
+                        in the same folder as api.py.
                     </p>
 
                 </body>
+                </html>
+                """,
+                status_code=500
+            )
+
+        return FileResponse(
+            INDEX_FILE,
+            media_type="text/html"
+        )
+
+    except Exception as error:
+
+        print("HOME PAGE ERROR:", repr(error))
+
+        return HTMLResponse(
+            content=f"""
+            <html>
+            <head>
+                <title>MarketPulse AI</title>
+            </head>
+
+            <body>
+
+                <h1>MarketPulse AI</h1>
+
+                <h2>Homepage Error</h2>
+
+                <pre>{str(error)}</pre>
+
+            </body>
             </html>
             """,
             status_code=500
         )
 
+
+# ============================================================
+# CSS
+# ============================================================
+
+@app.get("/style.css")
+async def style_css():
+
+    if not CSS_FILE.exists():
+
+        return JSONResponse(
+            status_code=404,
+            content={
+                "success": False,
+                "error": "style.css not found"
+            }
+        )
+
     return FileResponse(
-        index_file,
-        media_type="text/html"
+        CSS_FILE,
+        media_type="text/css"
+    )
+
+
+# ============================================================
+# JAVASCRIPT
+# ============================================================
+
+@app.get("/script.js")
+async def script_js():
+
+    if not JS_FILE.exists():
+
+        return JSONResponse(
+            status_code=404,
+            content={
+                "success": False,
+                "error": "script.js not found"
+            }
+        )
+
+    return FileResponse(
+        JS_FILE,
+        media_type="application/javascript"
     )
 
 
@@ -108,6 +200,35 @@ async def health():
 
 
 # ============================================================
+# PROJECT STATUS
+# ============================================================
+
+@app.get("/status")
+async def project_status():
+
+    return {
+
+        "success": True,
+
+        "project": "MarketPulse AI",
+
+        "files": {
+
+            "index.html":
+                INDEX_FILE.exists(),
+
+            "style.css":
+                CSS_FILE.exists(),
+
+            "script.js":
+                JS_FILE.exists(),
+
+        }
+
+    }
+
+
+# ============================================================
 # PREDICT STOCK
 # ============================================================
 
@@ -122,12 +243,11 @@ async def predict(request: Request):
 
         body = await request.json()
 
-        print()
-        print("==============================")
+        print("")
+        print("==========================================")
         print("PREDICTION REQUEST")
-        print("==============================")
-        print(body)
-
+        print("==========================================")
+        print("Request:", body)
 
         # ----------------------------------------------------
         # GET SYMBOL
@@ -137,17 +257,22 @@ async def predict(request: Request):
             body.get("symbol", "")
         ).strip().upper()
 
-
         if not symbol:
 
             return JSONResponse(
-                status_code=400,
-                content={
-                    "success": False,
-                    "error": "Stock symbol is required."
-                }
-            )
 
+                status_code=400,
+
+                content={
+
+                    "success": False,
+
+                    "error":
+                        "Stock symbol is required."
+
+                }
+
+            )
 
         # ----------------------------------------------------
         # CONVERT TO NSE SYMBOL
@@ -160,24 +285,17 @@ async def predict(request: Request):
 
             symbol = symbol + ".NS"
 
-
-        print(
-            "Analysing:",
-            symbol
-        )
-
+        print("Analysing:", symbol)
 
         # ----------------------------------------------------
         # LOAD STOCK DATA
         # ----------------------------------------------------
 
-        from combined_loader import CombinedLoader
-
-
-        loader = CombinedLoader()
-
-
         try:
+
+            from combined_loader import CombinedLoader
+
+            loader = CombinedLoader()
 
             data_frame = loader.prepare_stock_data(
                 symbol,
@@ -186,13 +304,18 @@ async def predict(request: Request):
 
         except TypeError:
 
-            # Compatibility with loaders that
-            # don't accept period argument.
+            # Compatibility if your loader
+            # doesn't accept period
+
+            loader = CombinedLoader()
 
             data_frame = loader.prepare_stock_data(
                 symbol
             )
 
+        # ----------------------------------------------------
+        # CHECK DATA
+        # ----------------------------------------------------
 
         if (
             data_frame is None
@@ -200,13 +323,19 @@ async def predict(request: Request):
         ):
 
             return JSONResponse(
-                status_code=404,
-                content={
-                    "success": False,
-                    "error": f"No stock data found for {symbol}."
-                }
-            )
 
+                status_code=404,
+
+                content={
+
+                    "success": False,
+
+                    "error":
+                        f"No stock data found for {symbol}."
+
+                }
+
+            )
 
         print(
             "Historical records:",
@@ -218,10 +347,9 @@ async def predict(request: Request):
             list(data_frame.columns)
         )
 
-
-        # ====================================================
+        # ----------------------------------------------------
         # FIND CLOSE PRICE
-        # ====================================================
+        # ----------------------------------------------------
 
         if "ClsPric" in data_frame.columns:
 
@@ -234,109 +362,121 @@ async def predict(request: Request):
         else:
 
             return JSONResponse(
+
                 status_code=500,
+
                 content={
+
                     "success": False,
-                    "error": "Closing price column not found."
+
+                    "error":
+                        "Closing price column not found."
+
                 }
+
             )
 
+        # ----------------------------------------------------
+        # CLEAN PRICES
+        # ----------------------------------------------------
 
-        # ====================================================
-        # CLEAN PRICE DATA
-        # ====================================================
+        price_series = (
 
-        clean_data = data_frame.copy()
+            data_frame[price_column]
 
+            .astype(float)
 
-        clean_data[price_column] = np.asarray(
-            clean_data[price_column],
-            dtype=float
-        )
-
-
-        clean_data = clean_data.replace(
-            [np.inf, -np.inf],
-            np.nan
-        )
-
-
-        clean_data = clean_data.dropna(
-            subset=[price_column]
-        )
-
-
-        if clean_data.empty:
-
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "success": False,
-                    "error": "No valid closing price data found."
-                }
+            .replace(
+                [np.inf, -np.inf],
+                np.nan
             )
 
+        )
 
-        prices = [
-            float(value)
-            for value in clean_data[price_column].tolist()
-        ]
+        valid_mask = price_series.notna()
 
+        prices = (
+            price_series[valid_mask]
+            .tolist()
+        )
 
         if len(prices) < 60:
 
             return JSONResponse(
+
                 status_code=400,
+
                 content={
+
                     "success": False,
-                    "error": "Not enough historical data."
+
+                    "error":
+                        "Not enough historical data."
+
                 }
+
             )
 
-
-        # ====================================================
+        # ----------------------------------------------------
         # HISTORICAL DATES
-        # ====================================================
+        # ----------------------------------------------------
 
-        if "TradDt" in clean_data.columns:
+        if "TradDt" in data_frame.columns:
 
-            historical_dates = [
-                str(value)
-                for value in clean_data["TradDt"].tolist()
+            dates_series = data_frame.loc[
+                valid_mask,
+                "TradDt"
             ]
 
-        elif "Date" in clean_data.columns:
+            historical_dates = [
+
+                str(value)
+
+                for value in dates_series
+
+            ]
+
+        elif "Date" in data_frame.columns:
+
+            dates_series = data_frame.loc[
+                valid_mask,
+                "Date"
+            ]
 
             historical_dates = [
+
                 str(value)
-                for value in clean_data["Date"].tolist()
+
+                for value in dates_series
+
             ]
 
         else:
 
             historical_dates = [
+
                 str(index + 1)
+
                 for index in range(len(prices))
+
             ]
 
-
-        # Keep same length
+        # ----------------------------------------------------
+        # MAKE LENGTHS IDENTICAL
+        # ----------------------------------------------------
 
         minimum_length = min(
             len(prices),
             len(historical_dates)
         )
 
-
         prices = prices[
             -minimum_length:
         ]
 
-
         historical_dates = historical_dates[
             -minimum_length:
         ]
-
 
         # ====================================================
         # TECHNICAL INDICATORS
@@ -344,16 +484,15 @@ async def predict(request: Request):
 
         indicators = {}
 
-
         try:
 
             from indicators import calculate_indicators
 
+            indicator_data = data_frame.copy()
 
-            indicator_data = clean_data.copy()
-
-
-            # indicators.py expects Close
+            # ------------------------------------------------
+            # Make Close column available
+            # ------------------------------------------------
 
             if "ClsPric" in indicator_data.columns:
 
@@ -361,11 +500,9 @@ async def predict(request: Request):
                     indicator_data["ClsPric"]
                 )
 
-
             result = calculate_indicators(
                 indicator_data
             )
-
 
             if (
                 result is not None
@@ -373,7 +510,6 @@ async def predict(request: Request):
             ):
 
                 latest = result.iloc[-1]
-
 
                 indicators = {
 
@@ -409,36 +545,47 @@ async def predict(request: Request):
 
                     "macd_signal":
                         safe_number(
-                            latest.get("MACD_Signal")
+                            latest.get(
+                                "MACD_Signal"
+                            )
                         ),
 
                     "volatility_20":
                         safe_number(
-                            latest.get("Volatility_20")
+                            latest.get(
+                                "Volatility_20"
+                            )
                         ),
 
                     "momentum_10":
                         safe_number(
-                            latest.get("Momentum_10")
+                            latest.get(
+                                "Momentum_10"
+                            )
                         ),
 
                     "atr_14":
                         safe_number(
-                            latest.get("ATR_14")
+                            latest.get(
+                                "ATR_14"
+                            )
                         ),
 
                     "stochastic_k":
                         safe_number(
-                            latest.get("Stochastic_K")
+                            latest.get(
+                                "Stochastic_K"
+                            )
                         ),
 
                     "relative_volume":
                         safe_number(
-                            latest.get("Relative_Volume")
+                            latest.get(
+                                "Relative_Volume"
+                            )
                         )
 
                 }
-
 
         except Exception as error:
 
@@ -447,21 +594,20 @@ async def predict(request: Request):
                 repr(error)
             )
 
-
         # ====================================================
         # BAYESIAN PREDICTION
         # ====================================================
 
         predictions = []
 
-
         try:
 
-            from bayesian_stock import BayesianStockModel
-
+            from bayesian_stock import (
+                BayesianStockModel
+            )
 
             # ------------------------------------------------
-            # TRAINING DATA
+            # X = time/day index
             # ------------------------------------------------
 
             X = np.arange(
@@ -472,19 +618,20 @@ async def predict(request: Request):
                 1
             )
 
+            # ------------------------------------------------
+            # Y = closing prices
+            # ------------------------------------------------
 
             y = np.asarray(
                 prices,
                 dtype=float
             )
 
-
             # ------------------------------------------------
             # CREATE MODEL
             # ------------------------------------------------
 
             model = BayesianStockModel()
-
 
             # ------------------------------------------------
             # TRAIN
@@ -495,20 +642,22 @@ async def predict(request: Request):
                 y
             )
 
-
             # ------------------------------------------------
             # FUTURE DAYS
             # ------------------------------------------------
 
             future_X = np.arange(
+
                 len(prices),
+
                 len(prices) + 5,
+
                 dtype=float
+
             ).reshape(
                 -1,
                 1
             )
-
 
             # ------------------------------------------------
             # PREDICT
@@ -518,12 +667,14 @@ async def predict(request: Request):
                 future_X
             )
 
-
             prediction_result = np.asarray(
                 prediction_result,
                 dtype=float
             ).flatten()
 
+            # ------------------------------------------------
+            # CLEAN PREDICTIONS
+            # ------------------------------------------------
 
             predictions = [
 
@@ -535,8 +686,9 @@ async def predict(request: Request):
 
             ]
 
-
-            # Make sure exactly 5 predictions exist
+            # ------------------------------------------------
+            # Make sure exactly 5 predictions
+            # ------------------------------------------------
 
             if len(predictions) < 5:
 
@@ -550,19 +702,14 @@ async def predict(request: Request):
                         last_price
                     )
 
-
             predictions = predictions[:5]
-
 
         except Exception as error:
 
-            print()
-            print("==============================")
-            print("Bayesian prediction error")
-            print("==============================")
+            print("")
+            print("BAYESIAN PREDICTION ERROR")
             print(repr(error))
-            print("==============================")
-
+            print("")
 
             # ------------------------------------------------
             # FALLBACK
@@ -571,7 +718,6 @@ async def predict(request: Request):
             last_price = float(
                 prices[-1]
             )
-
 
             predictions = [
 
@@ -583,12 +729,11 @@ async def predict(request: Request):
 
             ]
 
-
         # ====================================================
         # FINAL RESPONSE
         # ====================================================
 
-        return {
+        response = {
 
             "success": True,
 
@@ -631,16 +776,28 @@ async def predict(request: Request):
 
         }
 
+        print("")
+        print("Prediction completed successfully.")
+        print("Current price:", prices[-1])
+        print("Predictions:", predictions)
+        print("==========================================")
+        print("")
+
+        return response
+
+    # ========================================================
+    # GENERAL ERROR
+    # ========================================================
 
     except Exception as error:
 
-        print()
-        print("==============================")
+        print("")
+        print("==========================================")
         print("PREDICTION ERROR")
-        print("==============================")
+        print("==========================================")
         print(repr(error))
-        print("==============================")
-
+        print("==========================================")
+        print("")
 
         return JSONResponse(
 
@@ -671,37 +828,53 @@ async def company_news(symbol: str):
             f"Loading news for {symbol}"
         )
 
-
         from news import get_company_news
 
+        # ----------------------------------------------------
+        # Clean symbol
+        # ----------------------------------------------------
 
         clean_symbol = (
+
             symbol
-            .replace(".NS", "")
-            .replace(".BO", "")
+
+            .replace(
+                ".NS",
+                ""
+            )
+
+            .replace(
+                ".BO",
+                ""
+            )
+
             .upper()
+
         )
 
+        # ----------------------------------------------------
+        # Get news
+        # ----------------------------------------------------
 
         articles = get_company_news(
             clean_symbol
         )
 
-
         if articles is None:
 
             articles = []
-
 
         return {
 
             "success": True,
 
+            "symbol":
+                clean_symbol,
+
             "articles":
                 articles
 
         }
-
 
     except Exception as error:
 
@@ -709,7 +882,6 @@ async def company_news(symbol: str):
             "News error:",
             repr(error)
         )
-
 
         return JSONResponse(
 
@@ -730,61 +902,37 @@ async def company_news(symbol: str):
 
 
 # ============================================================
-# SAFE NUMBER
-# ============================================================
-
-def safe_number(value):
-
-    try:
-
-        if value is None:
-
-            return None
-
-
-        number = float(value)
-
-
-        if not np.isfinite(number):
-
-            return None
-
-
-        return number
-
-
-    except Exception:
-
-        return None
-
-
-# ============================================================
 # STARTUP
 # ============================================================
 
 @app.on_event("startup")
 async def startup():
 
-    print()
+    print("")
     print("==========================================")
-    print("       MARKETPULSE AI STARTED")
+    print("        MARKETPULSE AI STARTED")
     print("==========================================")
-
-    print()
-    print("Dashboard:")
+    print("")
+    print("Project directory:")
+    print(BASE_DIR)
+    print("")
+    print("Website:")
     print("http://127.0.0.1:8000")
-
-    print()
+    print("")
     print("Health:")
     print("http://127.0.0.1:8000/health")
-
-    print()
-    print("Swagger:")
-    print("http://127.0.0.1:8000/docs")
-
-    print()
+    print("")
+    print("Status:")
+    print("http://127.0.0.1:8000/status")
+    print("")
     print("News:")
     print("http://127.0.0.1:8000/news/RELIANCE")
-
+    print("")
+    print("CSS:")
+    print("http://127.0.0.1:8000/style.css")
+    print("")
+    print("JavaScript:")
+    print("http://127.0.0.1:8000/script.js")
+    print("")
     print("==========================================")
-    print()
+    print("")
