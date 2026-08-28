@@ -11,7 +11,7 @@ let currentData = null;
 // PAGE LOAD
 // ============================================================
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
 
     console.log("MarketPulse AI loaded");
 
@@ -20,18 +20,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Analyze button
     if (button) {
-        button.addEventListener("click", function (event) {
+        button.addEventListener("click", (event) => {
             event.preventDefault();
             analyzeStock();
         });
     }
 
-    // Enter key in stock input
+    // Enter key
     if (input) {
-        input.disabled = false;
-        input.readOnly = false;
-
-        input.addEventListener("keydown", function (event) {
+        input.addEventListener("keydown", (event) => {
 
             if (event.key === "Enter") {
                 event.preventDefault();
@@ -41,23 +38,38 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Year buttons
-    document.querySelectorAll(".year-button").forEach(function (button) {
+    // Popular stock buttons
+    document.querySelectorAll(".popular button").forEach((button) => {
 
-        button.addEventListener("click", function () {
+        button.addEventListener("click", (event) => {
+
+            event.preventDefault();
+
+            const symbol =
+                button.dataset.symbol ||
+                button.textContent.trim();
+
+            selectStock(symbol);
+
+        });
+
+    });
+
+    // Year buttons
+    document.querySelectorAll(".year-button").forEach((button) => {
+
+        button.addEventListener("click", () => {
 
             document
                 .querySelectorAll(".year-button")
-                .forEach(function (b) {
-                    b.classList.remove("active");
-                });
+                .forEach((b) => b.classList.remove("active"));
 
-            this.classList.add("active");
+            button.classList.add("active");
 
             if (currentData) {
                 drawHistoryChart(
                     currentData,
-                    this.dataset.year || "all"
+                    button.dataset.year || "all"
                 );
             }
 
@@ -77,15 +89,22 @@ function selectStock(symbol) {
     const input = document.getElementById("stockSymbol");
 
     if (!input) {
+        console.error("stockSymbol input not found");
         return;
     }
 
-    input.disabled = false;
-    input.readOnly = false;
     input.value = symbol;
 
+    // Put cursor inside the input
+    input.focus();
+
+    // Analyze immediately
     analyzeStock();
 }
+
+
+// Make available to HTML onclick
+window.selectStock = selectStock;
 
 
 // ============================================================
@@ -102,24 +121,20 @@ function normalizeSymbol(symbol) {
         return "";
     }
 
-    // NIFTY / index symbols
-    if (symbol === "NIFTY") {
-        return "^NSEI";
+    // Index symbols such as ^NSEI
+    if (symbol.startsWith("^")) {
+        return symbol;
     }
 
-    if (symbol === "BANKNIFTY") {
-        return "^NSEBANK";
-    }
-
-    // Already Yahoo format
+    // Already has exchange
     if (
-        symbol.includes(".") ||
-        symbol.startsWith("^")
+        symbol.endsWith(".NS") ||
+        symbol.endsWith(".BO")
     ) {
         return symbol;
     }
 
-    // Indian NSE stock
+    // Default to NSE
     return symbol + ".NS";
 }
 
@@ -134,11 +149,11 @@ async function analyzeStock() {
     const button = document.getElementById("analyzeButton");
 
     if (!input) {
-        console.error("stockSymbol input not found");
+        console.error("Stock input not found");
         return;
     }
 
-    const symbol = normalizeSymbol(input.value);
+    let symbol = normalizeSymbol(input.value);
 
     if (!symbol) {
 
@@ -156,8 +171,10 @@ async function analyzeStock() {
     showLoading();
 
     if (button) {
+
         button.disabled = true;
         button.textContent = "Analysing...";
+
     }
 
     try {
@@ -165,6 +182,7 @@ async function analyzeStock() {
         console.log("Analysing:", symbol);
 
         const response = await fetch("/predict", {
+
             method: "POST",
 
             headers: {
@@ -174,13 +192,14 @@ async function analyzeStock() {
             body: JSON.stringify({
                 symbol: symbol
             })
+
         });
 
         let data;
 
         try {
             data = await response.json();
-        } catch (jsonError) {
+        } catch {
             throw new Error(
                 "Server returned an invalid response."
             );
@@ -192,9 +211,10 @@ async function analyzeStock() {
 
             throw new Error(
                 data.error ||
-                data.message ||
-                "Server error."
+                data.detail ||
+                `Server error (${response.status})`
             );
+
         }
 
         if (data.success === false) {
@@ -203,6 +223,7 @@ async function analyzeStock() {
                 data.error ||
                 "Stock analysis failed."
             );
+
         }
 
         currentData = data;
@@ -215,22 +236,29 @@ async function analyzeStock() {
 
         drawPredictionChart(data);
 
-        await loadCompanyNews(symbol);
+        // News should not stop stock analysis
+        try {
+            await loadCompanyNews(symbol);
+        } catch (newsError) {
+            console.warn(
+                "News failed:",
+                newsError
+            );
+        }
 
-    }
+    } catch (error) {
 
-    catch (error) {
-
-        console.error("Analysis error:", error);
+        console.error(
+            "Analysis error:",
+            error
+        );
 
         showError(
             error.message ||
             "Unable to analyse stock."
         );
 
-    }
-
-    finally {
+    } finally {
 
         hideLoading();
 
@@ -243,6 +271,9 @@ async function analyzeStock() {
 
     }
 }
+
+
+window.analyzeStock = analyzeStock;
 
 
 // ============================================================
@@ -285,11 +316,15 @@ function updateDashboard(data) {
     // Historical records
     setText(
         "historicalRecords",
-        data.historical_records || prices.length
+        data.historical_records ??
+        prices.length
     );
 
 
-    // Forecast
+    // ========================================================
+    // FORECAST
+    // ========================================================
+
     if (predictions.length > 0) {
 
         const finalPrediction =
@@ -313,16 +348,25 @@ function updateDashboard(data) {
 
     } else {
 
-        setText("forecastPrice", "—");
-        setText("forecastChange", "—");
+        setText(
+            "forecastPrice",
+            "—"
+        );
+
+        setText(
+            "forecastChange",
+            "—"
+        );
 
     }
 
 
-    // Indicators
+    // ========================================================
+    // INDICATORS
+    // ========================================================
+
     const indicators =
         data.indicators || {};
-
 
     setIndicator(
         "rsi",
@@ -398,7 +442,7 @@ function updateDashboard(data) {
 // HISTORY CHART
 // ============================================================
 
-function drawHistoryChart(data, selectedYear) {
+function drawHistoryChart(data, selectedYear = "all") {
 
     const canvas =
         document.getElementById("historyChart");
@@ -406,7 +450,6 @@ function drawHistoryChart(data, selectedYear) {
     if (!canvas) {
         return;
     }
-
 
     const prices =
         getHistoricalPrices(data);
@@ -430,7 +473,6 @@ function drawHistoryChart(data, selectedYear) {
         const date =
             dates[i] || "";
 
-
         if (
             selectedYear !== "all" &&
             date &&
@@ -441,12 +483,13 @@ function drawHistoryChart(data, selectedYear) {
             continue;
         }
 
-
         labels.push(
             formatDateLabel(date)
         );
 
-        values.push(prices[i]);
+        values.push(
+            prices[i]
+        );
 
     }
 
@@ -516,9 +559,7 @@ function drawHistoryChart(data, selectedYear) {
                         },
 
                         y: {
-
                             beginAtZero: false
-
                         }
 
                     }
@@ -527,6 +568,7 @@ function drawHistoryChart(data, selectedYear) {
 
             }
         );
+
 }
 
 
@@ -537,7 +579,9 @@ function drawHistoryChart(data, selectedYear) {
 function drawPredictionChart(data) {
 
     const canvas =
-        document.getElementById("predictionChart");
+        document.getElementById(
+            "predictionChart"
+        );
 
     if (!canvas) {
         return;
@@ -557,7 +601,7 @@ function drawPredictionChart(data) {
     ) {
 
         console.warn(
-            "Prediction chart: no prediction data."
+            "No prediction data available."
         );
 
         return;
@@ -598,23 +642,25 @@ function drawPredictionChart(data) {
 
 
     const historyData = [
+
         ...historical,
+
         ...Array(
             predictions.length
         ).fill(null)
+
     ];
 
 
     const predictionData = [
 
         ...Array(
-            Math.max(
-                historical.length - 1,
-                0
-            )
+            historical.length - 1
         ).fill(null),
 
-        historical[historical.length - 1],
+        historical[
+            historical.length - 1
+        ],
 
         ...predictions
 
@@ -622,8 +668,10 @@ function drawPredictionChart(data) {
 
 
     if (predictionChart) {
+
         predictionChart.destroy();
         predictionChart = null;
+
     }
 
 
@@ -693,11 +741,9 @@ function drawPredictionChart(data) {
 
                     interaction: {
 
-                        mode:
-                            "index",
+                        mode: "index",
 
-                        intersect:
-                            false
+                        intersect: false
 
                     }
 
@@ -705,6 +751,7 @@ function drawPredictionChart(data) {
 
             }
         );
+
 }
 
 
@@ -729,10 +776,9 @@ async function loadCompanyNews(symbol) {
 
 
     const company =
-        String(symbol)
+        symbol
             .replace(".NS", "")
-            .replace(".BO", "")
-            .replace("^", "");
+            .replace(".BO", "");
 
 
     try {
@@ -769,13 +815,14 @@ async function loadCompanyNews(symbol) {
                 "<p>No recent news found.</p>";
 
             return;
+
         }
 
 
         container.innerHTML =
             articles
                 .slice(0, 8)
-                .map(function (article) {
+                .map(article => {
 
                     const title =
                         escapeHtml(
@@ -791,15 +838,16 @@ async function loadCompanyNews(symbol) {
 
                     const url =
                         escapeAttribute(
-                            article.url ||
-                            "#"
+                            article.url || "#"
                         );
 
 
                     return `
+
                         <article class="news-item">
 
                             <h3>
+
                                 <a
                                     href="${url}"
                                     target="_blank"
@@ -807,6 +855,7 @@ async function loadCompanyNews(symbol) {
                                 >
                                     ${title}
                                 </a>
+
                             </h3>
 
                             <div class="news-meta">
@@ -814,28 +863,29 @@ async function loadCompanyNews(symbol) {
                             </div>
 
                         </article>
+
                     `;
 
                 })
                 .join("");
 
-    }
+    } catch (error) {
 
-    catch (error) {
-
-        console.error(
+        console.warn(
             "News error:",
             error
         );
 
         container.innerHTML =
             "<p>News unavailable.</p>";
+
     }
+
 }
 
 
 // ============================================================
-// RISK ANALYSIS
+// RISK
 // ============================================================
 
 function calculateRisk(
@@ -860,7 +910,6 @@ function calculateRisk(
         Number(indicators.rsi_14);
 
 
-    // Trend
     if (
         Number.isFinite(currentPrice) &&
         Number.isFinite(sma20) &&
@@ -888,24 +937,19 @@ function calculateRisk(
     }
 
 
-    // Prediction confidence
     if (predictions.length >= 2) {
 
         const first =
-            Number(predictions[0]);
+            predictions[0];
 
         const last =
-            Number(
-                predictions[
-                    predictions.length - 1
-                ]
-            );
+            predictions[predictions.length - 1];
 
 
         if (
+            first !== 0 &&
             Number.isFinite(first) &&
-            Number.isFinite(last) &&
-            first !== 0
+            Number.isFinite(last)
         ) {
 
             const movement =
@@ -918,21 +962,15 @@ function calculateRisk(
 
 
             if (movement < 1) {
-
                 confidence = "High";
-
             }
 
             else if (movement < 3) {
-
                 confidence = "Moderate";
-
             }
 
             else {
-
                 confidence = "Lower";
-
             }
 
         }
@@ -940,7 +978,6 @@ function calculateRisk(
     }
 
 
-    // Risk
     if (Number.isFinite(rsi)) {
 
         if (
@@ -984,11 +1021,12 @@ function calculateRisk(
         "riskLevel",
         risk
     );
+
 }
 
 
 // ============================================================
-// GET HISTORICAL PRICES
+// DATA HELPERS
 // ============================================================
 
 function getHistoricalPrices(data) {
@@ -1003,16 +1041,12 @@ function getHistoricalPrices(data) {
 
     }
 
-
     return data.historical_prices
         .map(Number)
         .filter(Number.isFinite);
+
 }
 
-
-// ============================================================
-// GET PREDICTIONS
-// ============================================================
 
 function getPredictions(data) {
 
@@ -1026,15 +1060,15 @@ function getPredictions(data) {
 
     }
 
-
     return data.predictions
         .map(Number)
         .filter(Number.isFinite);
+
 }
 
 
 // ============================================================
-// SET INDICATOR
+// INDICATOR
 // ============================================================
 
 function setIndicator(id, value) {
@@ -1051,21 +1085,25 @@ function setIndicator(id, value) {
         Number(value);
 
 
-    if (!Number.isFinite(number)) {
+    if (
+        !Number.isFinite(number)
+    ) {
 
         element.textContent = "—";
 
         return;
+
     }
 
 
     element.textContent =
         number.toFixed(2);
+
 }
 
 
 // ============================================================
-// SET TEXT
+// TEXT
 // ============================================================
 
 function setText(id, value) {
@@ -1074,13 +1112,17 @@ function setText(id, value) {
         document.getElementById(id);
 
     if (element) {
-        element.textContent = value;
+
+        element.textContent =
+            value;
+
     }
+
 }
 
 
 // ============================================================
-// FORMAT PRICE
+// PRICE
 // ============================================================
 
 function formatPrice(value) {
@@ -1089,8 +1131,12 @@ function formatPrice(value) {
         Number(value);
 
 
-    if (!Number.isFinite(number)) {
+    if (
+        !Number.isFinite(number)
+    ) {
+
         return "—";
+
     }
 
 
@@ -1104,11 +1150,12 @@ function formatPrice(value) {
             }
         )
     );
+
 }
 
 
 // ============================================================
-// FORMAT PERCENT
+// PERCENT
 // ============================================================
 
 function formatPercent(value) {
@@ -1117,8 +1164,12 @@ function formatPercent(value) {
         Number(value);
 
 
-    if (!Number.isFinite(number)) {
+    if (
+        !Number.isFinite(number)
+    ) {
+
         return "—";
+
     }
 
 
@@ -1127,11 +1178,12 @@ function formatPercent(value) {
         number.toFixed(2) +
         "%"
     );
+
 }
 
 
 // ============================================================
-// CALCULATE PERCENTAGE CHANGE
+// PERCENTAGE CHANGE
 // ============================================================
 
 function calculatePercentageChange(
@@ -1146,6 +1198,7 @@ function calculatePercentageChange(
     ) {
 
         return null;
+
     }
 
 
@@ -1155,11 +1208,12 @@ function calculatePercentageChange(
             oldValue
         ) * 100
     );
+
 }
 
 
 // ============================================================
-// FORMAT DATE
+// DATE
 // ============================================================
 
 function formatDateLabel(value) {
@@ -1180,6 +1234,7 @@ function formatDateLabel(value) {
     ) {
 
         return String(value);
+
     }
 
 
@@ -1191,11 +1246,12 @@ function formatDateLabel(value) {
             year: "numeric"
         }
     );
+
 }
 
 
 // ============================================================
-// ESCAPE HTML
+// SECURITY
 // ============================================================
 
 function escapeHtml(value) {
@@ -1206,21 +1262,19 @@ function escapeHtml(value) {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+
 }
 
-
-// ============================================================
-// ESCAPE ATTRIBUTE
-// ============================================================
 
 function escapeAttribute(value) {
 
     return escapeHtml(value);
+
 }
 
 
 // ============================================================
-// SHOW DASHBOARD
+// UI
 // ============================================================
 
 function showDashboard() {
@@ -1235,13 +1289,11 @@ function showDashboard() {
         element.classList.remove(
             "hidden"
         );
+
     }
+
 }
 
-
-// ============================================================
-// SHOW LOADING
-// ============================================================
 
 function showLoading() {
 
@@ -1255,13 +1307,11 @@ function showLoading() {
         element.classList.remove(
             "hidden"
         );
+
     }
+
 }
 
-
-// ============================================================
-// HIDE LOADING
-// ============================================================
 
 function hideLoading() {
 
@@ -1275,13 +1325,11 @@ function hideLoading() {
         element.classList.add(
             "hidden"
         );
+
     }
+
 }
 
-
-// ============================================================
-// SHOW ERROR
-// ============================================================
 
 function showError(message) {
 
@@ -1300,6 +1348,7 @@ function showError(message) {
 
         messageElement.textContent =
             message;
+
     }
 
 
@@ -1308,13 +1357,11 @@ function showError(message) {
         box.classList.remove(
             "hidden"
         );
+
     }
+
 }
 
-
-// ============================================================
-// HIDE ERROR
-// ============================================================
 
 function hideError() {
 
@@ -1328,13 +1375,7 @@ function hideError() {
         box.classList.add(
             "hidden"
         );
+
     }
+
 }
-
-
-// ============================================================
-// GLOBAL FUNCTIONS
-// ============================================================
-
-window.selectStock = selectStock;
-window.analyzeStock = analyzeStock;
