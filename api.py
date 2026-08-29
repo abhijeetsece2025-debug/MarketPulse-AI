@@ -10,8 +10,8 @@ from fastapi.staticfiles import StaticFiles
 
 import os
 import numpy as np
+import pandas as pd
 
-# Bayesian Regression without PyMC/PyTensor compilation
 from sklearn.linear_model import BayesianRidge
 from sklearn.preprocessing import StandardScaler
 
@@ -68,13 +68,18 @@ async def home():
             <head>
                 <title>MarketPulse AI</title>
             </head>
+
             <body>
+
                 <h1>MarketPulse AI</h1>
+
                 <h2>index.html not found</h2>
+
                 <p>
                     Please make sure index.html exists
                     in the project folder.
                 </p>
+
             </body>
             </html>
             """,
@@ -112,13 +117,15 @@ def normalize_symbol(symbol):
     ).strip().upper()
 
     if not symbol:
+
         return ""
 
     if (
         "." not in symbol
         and not symbol.startswith("^")
     ):
-        symbol = symbol + ".NS"
+
+        symbol += ".NS"
 
     return symbol
 
@@ -132,11 +139,13 @@ def safe_number(value):
     try:
 
         if value is None:
+
             return None
 
         number = float(value)
 
         if not np.isfinite(number):
+
             return None
 
         return number
@@ -158,11 +167,12 @@ async def predict(request: Request):
     print("          PREDICTION REQUEST")
     print("==========================================")
 
+
     try:
 
-        # ----------------------------------------------------
-        # READ JSON
-        # ----------------------------------------------------
+        # ====================================================
+        # READ REQUEST
+        # ====================================================
 
         try:
 
@@ -179,15 +189,21 @@ async def predict(request: Request):
             )
 
 
-        print("Request:", body)
+        print(
+            "Request:",
+            body
+        )
 
 
-        # ----------------------------------------------------
+        # ====================================================
         # GET SYMBOL
-        # ----------------------------------------------------
+        # ====================================================
 
         symbol = normalize_symbol(
-            body.get("symbol", "")
+            body.get(
+                "symbol",
+                ""
+            )
         )
 
 
@@ -197,7 +213,8 @@ async def predict(request: Request):
                 status_code=400,
                 content={
                     "success": False,
-                    "error": "Please enter a stock symbol."
+                    "error":
+                        "Please enter a stock symbol."
                 }
             )
 
@@ -218,18 +235,24 @@ async def predict(request: Request):
 
             loader = CombinedLoader()
 
+
             try:
 
-                data_frame = loader.prepare_stock_data(
-                    symbol,
-                    period="5y"
+                data_frame = (
+                    loader.prepare_stock_data(
+                        symbol,
+                        period="5y"
+                    )
                 )
 
             except TypeError:
 
-                data_frame = loader.prepare_stock_data(
-                    symbol
+                data_frame = (
+                    loader.prepare_stock_data(
+                        symbol
+                    )
                 )
+
 
         except Exception as error:
 
@@ -243,14 +266,15 @@ async def predict(request: Request):
                 content={
                     "success": False,
                     "error":
-                        f"Unable to load stock data: {str(error)}"
+                        "Unable to load stock data: "
+                        + str(error)
                 }
             )
 
 
-        # ----------------------------------------------------
+        # ====================================================
         # CHECK DATA
-        # ----------------------------------------------------
+        # ====================================================
 
         if (
             data_frame is None
@@ -313,19 +337,9 @@ async def predict(request: Request):
         clean_data = data_frame.copy()
 
 
-        clean_data[price_column] = (
-            clean_data[price_column]
-            .astype(str)
-            .str.replace(",", "", regex=False)
-        )
-
-
-        clean_data[price_column] = (
-            __import__("pandas")
-            .to_numeric(
-                clean_data[price_column],
-                errors="coerce"
-            )
+        clean_data[price_column] = pd.to_numeric(
+            clean_data[price_column],
+            errors="coerce"
         )
 
 
@@ -336,7 +350,9 @@ async def predict(request: Request):
 
 
         clean_data = clean_data.dropna(
-            subset=[price_column]
+            subset=[
+                price_column
+            ]
         )
 
 
@@ -347,7 +363,7 @@ async def predict(request: Request):
                 content={
                     "success": False,
                     "error":
-                        "No valid stock prices found."
+                        "No valid closing price data found."
                 }
             )
 
@@ -363,7 +379,9 @@ async def predict(request: Request):
             for value in
             clean_data[price_column].tolist()
 
-            if np.isfinite(float(value))
+            if np.isfinite(
+                float(value)
+            )
 
         ]
 
@@ -411,14 +429,15 @@ async def predict(request: Request):
 
             historical_dates = [
 
-                str(i + 1)
+                str(index + 1)
 
-                for i in range(len(prices))
+                for index in
+                range(len(prices))
 
             ]
 
 
-        # Make lengths equal
+        # Keep equal lengths
 
         minimum_length = min(
             len(prices),
@@ -430,9 +449,12 @@ async def predict(request: Request):
             -minimum_length:
         ]
 
-        historical_dates = historical_dates[
-            -minimum_length:
-        ]
+
+        historical_dates = (
+            historical_dates[
+                -minimum_length:
+            ]
+        )
 
 
         # ====================================================
@@ -461,10 +483,15 @@ async def predict(request: Request):
 
             from indicators import calculate_indicators
 
-            indicator_data = clean_data.copy()
+
+            indicator_data = (
+                clean_data.copy()
+            )
 
 
+            # ------------------------------------------------
             # indicators.py expects Close
+            # ------------------------------------------------
 
             if "ClsPric" in indicator_data.columns:
 
@@ -490,62 +517,86 @@ async def predict(request: Request):
 
                     "rsi_14":
                         safe_number(
-                            latest.get("RSI_14")
+                            latest.get(
+                                "RSI_14"
+                            )
                         ),
 
                     "sma_20":
                         safe_number(
-                            latest.get("SMA_20")
+                            latest.get(
+                                "SMA_20"
+                            )
                         ),
 
                     "sma_50":
                         safe_number(
-                            latest.get("SMA_50")
+                            latest.get(
+                                "SMA_50"
+                            )
                         ),
 
                     "ema_20":
                         safe_number(
-                            latest.get("EMA_20")
+                            latest.get(
+                                "EMA_20"
+                            )
                         ),
 
                     "ema_50":
                         safe_number(
-                            latest.get("EMA_50")
+                            latest.get(
+                                "EMA_50"
+                            )
                         ),
 
                     "macd":
                         safe_number(
-                            latest.get("MACD")
+                            latest.get(
+                                "MACD"
+                            )
                         ),
 
                     "macd_signal":
                         safe_number(
-                            latest.get("MACD_Signal")
+                            latest.get(
+                                "MACD_Signal"
+                            )
                         ),
 
                     "volatility_20":
                         safe_number(
-                            latest.get("Volatility_20")
+                            latest.get(
+                                "Volatility_20"
+                            )
                         ),
 
                     "momentum_10":
                         safe_number(
-                            latest.get("Momentum_10")
+                            latest.get(
+                                "Momentum_10"
+                            )
                         ),
 
                     "atr_14":
                         safe_number(
-                            latest.get("ATR_14")
+                            latest.get(
+                                "ATR_14"
+                            )
                         ),
 
                     "stochastic_k":
                         safe_number(
-                            latest.get("Stochastic_K")
+                            latest.get(
+                                "Stochastic_K"
+                            )
                         ),
 
                     "relative_volume":
                         safe_number(
-                            latest.get("Relative_Volume")
+                            latest.get(
+                                "Relative_Volume"
+                            )
                         )
 
                 }
@@ -574,12 +625,8 @@ async def predict(request: Request):
         try:
 
             # ------------------------------------------------
-            # USE RECENT DATA FOR TREND
+            # USE RECENT DATA
             # ------------------------------------------------
-
-            # Use up to the latest 250 trading days.
-            # This prevents very old prices from dominating
-            # the short-term forecast.
 
             training_size = min(
                 len(prices),
@@ -588,13 +635,15 @@ async def predict(request: Request):
 
 
             training_prices = np.asarray(
-                prices[-training_size:],
+                prices[
+                    -training_size:
+                ],
                 dtype=float
             )
 
 
             # ------------------------------------------------
-            # CREATE TIME FEATURE
+            # TIME FEATURE
             # ------------------------------------------------
 
             X = np.arange(
@@ -610,27 +659,41 @@ async def predict(request: Request):
 
 
             # ------------------------------------------------
-            # SCALE INPUT
+            # SCALE X
             # ------------------------------------------------
 
             scaler = StandardScaler()
 
-            X_scaled = scaler.fit_transform(
-                X
+
+            X_scaled = (
+                scaler.fit_transform(
+                    X
+                )
             )
 
 
             # ------------------------------------------------
-            # BAYESIAN RIDGE
+            # BAYESIAN RIDGE MODEL
+            # ------------------------------------------------
+            # IMPORTANT:
+            # Use max_iter, NOT n_iter.
+            # This works with current scikit-learn.
             # ------------------------------------------------
 
             bayesian_model = BayesianRidge(
-                n_iter=300,
+
+                max_iter=300,
+
                 tol=1e-6,
+
                 alpha_1=1e-6,
+
                 alpha_2=1e-6,
+
                 lambda_1=1e-6,
+
                 lambda_2=1e-6
+
             )
 
 
@@ -666,7 +729,7 @@ async def predict(request: Request):
 
 
             # ------------------------------------------------
-            # PREDICT
+            # PREDICTION
             # ------------------------------------------------
 
             prediction_result = (
@@ -683,14 +746,15 @@ async def predict(request: Request):
 
 
             # ------------------------------------------------
-            # VALIDATE PREDICTIONS
+            # VALIDATE
             # ------------------------------------------------
 
             predictions = [
 
                 float(value)
 
-                for value in prediction_result
+                for value in
+                prediction_result
 
                 if np.isfinite(value)
 
@@ -706,10 +770,8 @@ async def predict(request: Request):
 
 
             # ------------------------------------------------
-            # SAFETY CHECK
+            # POSITIVE PRICE CHECK
             # ------------------------------------------------
-
-            # Predictions must be positive stock prices.
 
             if any(
                 value <= 0
@@ -725,6 +787,7 @@ async def predict(request: Request):
             print(
                 "Bayesian Regression successful."
             )
+
 
             print(
                 "Predictions:",
@@ -744,9 +807,8 @@ async def predict(request: Request):
             print("------------------------------------------")
 
 
-            # IMPORTANT:
-            # Do NOT silently return five identical prices.
-            # That was the reason the dashboard showed 0.00%.
+            # Do not return fake identical predictions.
+            # Return the actual error instead.
 
             return JSONResponse(
                 status_code=500,
@@ -768,14 +830,22 @@ async def predict(request: Request):
         )
 
 
-        forecast_change = (
-            (
-                final_prediction -
+        if current_price != 0:
+
+            forecast_change = (
+
+                (
+                    final_prediction -
+                    current_price
+                )
+                /
                 current_price
-            )
-            /
-            current_price
-        ) * 100
+
+            ) * 100
+
+        else:
+
+            forecast_change = 0.0
 
 
         # ====================================================
@@ -801,9 +871,11 @@ async def predict(request: Request):
 
             "success": True,
 
-            "stock": symbol,
+            "stock":
+                symbol,
 
-            "symbol": symbol,
+            "symbol":
+                symbol,
 
             "current_price":
                 current_price,
@@ -812,7 +884,9 @@ async def predict(request: Request):
                 final_prediction,
 
             "forecast_change":
-                float(forecast_change),
+                float(
+                    forecast_change
+                ),
 
             "historical_records":
                 len(prices),
@@ -852,8 +926,11 @@ async def predict(request: Request):
         print("Current:", current_price)
         print("Forecast:", predictions)
         print(
-            "Change:",
-            round(forecast_change, 2),
+            "Forecast Change:",
+            round(
+                forecast_change,
+                2
+            ),
             "%"
         )
         print("==========================================")
@@ -868,9 +945,11 @@ async def predict(request: Request):
         print("==========================================")
         print("PREDICTION ERROR")
         print("==========================================")
+
         print(
             repr(error)
         )
+
         print("==========================================")
 
 
@@ -880,7 +959,8 @@ async def predict(request: Request):
 
             content={
 
-                "success": False,
+                "success":
+                    False,
 
                 "error":
                     str(error)
@@ -910,14 +990,22 @@ async def company_news(symbol: str):
 
         clean_symbol = (
             str(symbol)
-            .replace(".NS", "")
-            .replace(".BO", "")
+            .replace(
+                ".NS",
+                ""
+            )
+            .replace(
+                ".BO",
+                ""
+            )
             .upper()
         )
 
 
-        articles = get_company_news(
-            clean_symbol
+        articles = (
+            get_company_news(
+                clean_symbol
+            )
         )
 
 
@@ -928,7 +1016,8 @@ async def company_news(symbol: str):
 
         return {
 
-            "success": True,
+            "success":
+                True,
 
             "articles":
                 articles
@@ -950,9 +1039,11 @@ async def company_news(symbol: str):
 
             content={
 
-                "success": False,
+                "success":
+                    False,
 
-                "articles": [],
+                "articles":
+                    [],
 
                 "error":
                     str(error)
@@ -973,6 +1064,8 @@ async def startup():
     print("==========================================")
     print("          MARKETPULSE AI STARTED")
     print("==========================================")
+
+    print()
 
     print(
         "Dashboard:"
@@ -1012,8 +1105,6 @@ async def startup():
         "http://127.0.0.1:8000/news/RELIANCE"
     )
 
-    print(
-        "=========================================="
-    )
-
+    print()
+    print("==========================================")
     print()

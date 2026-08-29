@@ -1,5 +1,5 @@
 // ============================================================
-// MARKETPULSE AI - CORRECTED SCRIPT
+// MARKETPULSE AI
 // ============================================================
 
 let historyChart = null;
@@ -13,111 +13,112 @@ let currentData = null;
 
 document.addEventListener("DOMContentLoaded", function () {
 
-    console.log("MarketPulse AI JavaScript loaded");
+    console.log("MarketPulse AI JavaScript loaded.");
 
-    const analyzeButton =
+    const button =
         document.getElementById("analyzeButton");
-
-    const stockInput =
-        document.getElementById("stockSymbol");
-
-
-    // --------------------------------------------------------
-    // ANALYZE BUTTON
-    // --------------------------------------------------------
-
-    if (analyzeButton) {
-
-        analyzeButton.addEventListener("click", function (event) {
-
-            event.preventDefault();
-
-            analyzeStock();
-
-        });
-
-    }
-
-
-    // --------------------------------------------------------
-    // ENTER KEY
-    // --------------------------------------------------------
-
-    if (stockInput) {
-
-        stockInput.addEventListener("keydown", function (event) {
-
-            if (event.key === "Enter") {
-
-                event.preventDefault();
-
-                analyzeStock();
-
-            }
-
-        });
-
-    }
-
-
-    // --------------------------------------------------------
-    // YEAR BUTTONS
-    // --------------------------------------------------------
-
-    document
-        .querySelectorAll(".year-button")
-        .forEach(function (button) {
-
-            button.addEventListener("click", function () {
-
-                document
-                    .querySelectorAll(".year-button")
-                    .forEach(function (btn) {
-
-                        btn.classList.remove("active");
-
-                    });
-
-
-                this.classList.add("active");
-
-
-                if (currentData) {
-
-                    drawHistoryChart(
-                        currentData,
-                        this.dataset.year
-                    );
-
-                }
-
-            });
-
-        });
-
-
-    console.log("Event listeners ready");
-
-});
-
-
-// ============================================================
-// SELECT QUICK STOCK
-// ============================================================
-
-function selectStock(symbol) {
-
-    console.log("Selected stock:", symbol);
-
 
     const input =
         document.getElementById("stockSymbol");
 
 
+    if (button) {
+
+        button.addEventListener(
+            "click",
+            function () {
+
+                analyzeStock();
+
+            }
+        );
+
+    }
+
+
+    if (input) {
+
+        input.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (event.key === "Enter") {
+
+                    event.preventDefault();
+
+                    analyzeStock();
+
+                }
+
+            }
+        );
+
+    }
+
+
+    document
+        .querySelectorAll(".year-button")
+        .forEach(function (button) {
+
+            button.addEventListener(
+                "click",
+                function () {
+
+                    document
+                        .querySelectorAll(".year-button")
+                        .forEach(function (item) {
+
+                            item.classList.remove(
+                                "active"
+                            );
+
+                        });
+
+
+                    this.classList.add(
+                        "active"
+                    );
+
+
+                    if (currentData) {
+
+                        drawHistoryChart(
+                            currentData,
+                            this.dataset.year
+                        );
+
+                    }
+
+                }
+            );
+
+        });
+
+});
+
+
+// ============================================================
+// SELECT STOCK
+// ============================================================
+
+function selectStock(symbol) {
+
+    console.log(
+        "Selected stock:",
+        symbol
+    );
+
+
+    const input =
+        document.getElementById(
+            "stockSymbol"
+        );
+
+
     if (!input) {
 
         console.error(
-            "stockSymbol input not found"
+            "stockSymbol input not found."
         );
 
         return;
@@ -125,22 +126,13 @@ function selectStock(symbol) {
     }
 
 
-    // Put stock name into input box
-    input.value = symbol;
+    input.value =
+        symbol;
 
 
-    // Make sure input is visible and focused
     input.focus();
 
-
-    // Automatically analyse
-    analyzeStock();
-
 }
-
-
-// Make available to HTML onclick=""
-window.selectStock = selectStock;
 
 
 // ============================================================
@@ -162,9 +154,7 @@ function normalizeSymbol(symbol) {
     }
 
 
-    // Already Yahoo Finance format
     if (
-        value.includes(".") ||
         value.startsWith("^")
     ) {
 
@@ -173,8 +163,16 @@ function normalizeSymbol(symbol) {
     }
 
 
-    // Indian NSE stock
-    return value + ".NS";
+    if (
+        !value.includes(".")
+    ) {
+
+        value += ".NS";
+
+    }
+
+
+    return value;
 
 }
 
@@ -185,33 +183,27 @@ function normalizeSymbol(symbol) {
 
 async function analyzeStock() {
 
+    console.log(
+        "Analyze button clicked."
+    );
+
+
     const input =
-        document.getElementById("stockSymbol");
+        document.getElementById(
+            "stockSymbol"
+        );
 
 
     const button =
-        document.getElementById("analyzeButton");
+        document.getElementById(
+            "analyzeButton"
+        );
 
 
     if (!input) {
 
-        console.error(
-            "Stock input not found"
-        );
-
-        return;
-
-    }
-
-
-    let enteredValue =
-        input.value.trim();
-
-
-    if (!enteredValue) {
-
         showError(
-            "Please enter a stock symbol such as RELIANCE, TCS or INFY."
+            "Stock input field was not found."
         );
 
         return;
@@ -221,18 +213,25 @@ async function analyzeStock() {
 
     const symbol =
         normalizeSymbol(
-            enteredValue
+            input.value
         );
 
 
-    // Show normalized symbol
-    input.value = symbol;
+    if (!symbol) {
+
+        showError(
+            "Please enter a stock symbol."
+        );
+
+        input.focus();
+
+        return;
+
+    }
 
 
-    console.log(
-        "Analysing:",
-        symbol
-    );
+    input.value =
+        symbol;
 
 
     hideError();
@@ -242,7 +241,8 @@ async function analyzeStock() {
 
     if (button) {
 
-        button.disabled = true;
+        button.disabled =
+            true;
 
         button.textContent =
             "Analysing...";
@@ -252,14 +252,17 @@ async function analyzeStock() {
 
     try {
 
-        // ----------------------------------------------------
-        // CALL BACKEND
-        // ----------------------------------------------------
+        console.log(
+            "Sending request:",
+            symbol
+        );
+
 
         const response =
             await fetch(
                 "/predict",
                 {
+
                     method: "POST",
 
                     headers: {
@@ -267,30 +270,27 @@ async function analyzeStock() {
                             "application/json"
                     },
 
-                    body: JSON.stringify({
-                        symbol: symbol
-                    })
+                    body:
+                        JSON.stringify({
+                            symbol: symbol
+                        })
 
                 }
             );
 
 
         console.log(
-            "Response status:",
+            "HTTP status:",
             response.status
         );
 
-
-        // ----------------------------------------------------
-        // READ RESPONSE
-        // ----------------------------------------------------
 
         const data =
             await response.json();
 
 
         console.log(
-            "Backend response:",
+            "API response:",
             data
         );
 
@@ -299,17 +299,13 @@ async function analyzeStock() {
 
             throw new Error(
                 data.error ||
-                data.detail ||
-                "Server error: " +
-                response.status
+                "Server returned an error."
             );
 
         }
 
 
-        if (
-            data.success === false
-        ) {
+        if (!data.success) {
 
             throw new Error(
                 data.error ||
@@ -319,30 +315,17 @@ async function analyzeStock() {
         }
 
 
-        // ----------------------------------------------------
-        // SAVE DATA
-        // ----------------------------------------------------
+        currentData =
+            data;
 
-        currentData = data;
-
-
-        // ----------------------------------------------------
-        // SHOW DASHBOARD
-        // ----------------------------------------------------
 
         showDashboard();
 
 
-        // ----------------------------------------------------
-        // UPDATE DASHBOARD
-        // ----------------------------------------------------
+        updateDashboard(
+            data
+        );
 
-        updateDashboard(data);
-
-
-        // ----------------------------------------------------
-        // HISTORY CHART
-        // ----------------------------------------------------
 
         drawHistoryChart(
             data,
@@ -350,35 +333,29 @@ async function analyzeStock() {
         );
 
 
-        // ----------------------------------------------------
-        // PREDICTION CHART
-        // ----------------------------------------------------
-
         drawPredictionChart(
             data
         );
 
 
-        // ----------------------------------------------------
-        // NEWS
-        // ----------------------------------------------------
-
-        await loadCompanyNews(
+        loadCompanyNews(
             symbol
         );
 
 
-        console.log(
-            "Analysis completed successfully"
-        );
+        document
+            .getElementById("dashboard")
+            ?.scrollIntoView({
+                behavior: "smooth"
+            });
+
 
     }
-
 
     catch (error) {
 
         console.error(
-            "ANALYSIS ERROR:",
+            "Analysis error:",
             error
         );
 
@@ -390,7 +367,6 @@ async function analyzeStock() {
 
     }
 
-
     finally {
 
         hideLoading();
@@ -398,7 +374,8 @@ async function analyzeStock() {
 
         if (button) {
 
-            button.disabled = false;
+            button.disabled =
+                false;
 
             button.textContent =
                 "Analyze";
@@ -410,21 +387,11 @@ async function analyzeStock() {
 }
 
 
-// Make available globally
-window.analyzeStock = analyzeStock;
-
-
 // ============================================================
 // UPDATE DASHBOARD
 // ============================================================
 
 function updateDashboard(data) {
-
-    console.log(
-        "Updating dashboard:",
-        data
-    );
-
 
     const symbol =
         data.stock ||
@@ -433,53 +400,46 @@ function updateDashboard(data) {
 
 
     const prices =
-        getHistoricalPrices(data);
+        getHistoricalPrices(
+            data
+        );
 
 
     const predictions =
-        getPredictions(data);
+        getPredictions(
+            data
+        );
 
 
-    let currentPrice =
+    const currentPrice =
         Number(
             data.current_price
         );
 
 
-    // --------------------------------------------------------
-    // STOCK NAME
-    // --------------------------------------------------------
-
     setText(
         "stockName",
-        cleanSymbol(symbol)
+        symbol
+            .replace(".NS", "")
+            .replace(".BO", "")
     );
 
-
-    // --------------------------------------------------------
-    // CURRENT PRICE
-    // --------------------------------------------------------
 
     setText(
         "currentPrice",
-        formatPrice(currentPrice)
+        formatPrice(
+            currentPrice
+        )
     );
 
-
-    // --------------------------------------------------------
-    // HISTORICAL RECORDS
-    // --------------------------------------------------------
 
     setText(
         "historicalRecords",
-        data.historical_records ??
-        prices.length
+        data.historical_records ||
+        prices.length ||
+        "—"
     );
 
-
-    // --------------------------------------------------------
-    // FORECAST
-    // --------------------------------------------------------
 
     if (
         predictions.length > 0
@@ -508,7 +468,9 @@ function updateDashboard(data) {
 
         setText(
             "forecastChange",
-            formatPercent(change)
+            formatPercent(
+                change
+            )
         );
 
     }
@@ -527,10 +489,6 @@ function updateDashboard(data) {
 
     }
 
-
-    // --------------------------------------------------------
-    // INDICATORS
-    // --------------------------------------------------------
 
     const indicators =
         data.indicators || {};
@@ -608,10 +566,6 @@ function updateDashboard(data) {
     );
 
 
-    // --------------------------------------------------------
-    // RISK
-    // --------------------------------------------------------
-
     calculateRisk(
         data,
         currentPrice,
@@ -639,17 +593,15 @@ function drawHistoryChart(
 
     if (!canvas) {
 
-        console.error(
-            "historyChart canvas not found"
-        );
-
         return;
 
     }
 
 
     const prices =
-        getHistoricalPrices(data);
+        getHistoricalPrices(
+            data
+        );
 
 
     const dates =
@@ -664,18 +616,13 @@ function drawHistoryChart(
         prices.length === 0
     ) {
 
-        console.warn(
-            "No historical price data"
-        );
-
         return;
 
     }
 
 
-    let labels = [];
-
-    let values = [];
+    const labels = [];
+    const values = [];
 
 
     for (
@@ -690,8 +637,7 @@ function drawHistoryChart(
 
         if (
             selectedYear !== "all" &&
-            date &&
-            !String(date).includes(
+            !String(date).startsWith(
                 String(selectedYear)
             )
         ) {
@@ -702,7 +648,9 @@ function drawHistoryChart(
 
 
         labels.push(
-            formatDateLabel(date)
+            formatDateLabel(
+                date
+            )
         );
 
 
@@ -716,10 +664,6 @@ function drawHistoryChart(
     if (
         labels.length === 0
     ) {
-
-        console.warn(
-            "No data for selected year"
-        );
 
         return;
 
@@ -742,7 +686,8 @@ function drawHistoryChart(
 
                 data: {
 
-                    labels: labels,
+                    labels:
+                        labels,
 
                     datasets: [
 
@@ -751,15 +696,20 @@ function drawHistoryChart(
                             label:
                                 "Closing Price",
 
-                            data: values,
+                            data:
+                                values,
 
-                            borderWidth: 2,
+                            borderWidth:
+                                2,
 
-                            pointRadius: 0,
+                            pointRadius:
+                                0,
 
-                            tension: 0.2,
+                            tension:
+                                0.2,
 
-                            fill: false
+                            fill:
+                                false
 
                         }
 
@@ -769,15 +719,19 @@ function drawHistoryChart(
 
                 options: {
 
-                    responsive: true,
+                    responsive:
+                        true,
 
-                    maintainAspectRatio: false,
+                    maintainAspectRatio:
+                        false,
 
                     interaction: {
 
-                        mode: "index",
+                        mode:
+                            "index",
 
-                        intersect: false
+                        intersect:
+                            false
 
                     },
 
@@ -787,7 +741,8 @@ function drawHistoryChart(
 
                             ticks: {
 
-                                maxTicksLimit: 12
+                                maxTicksLimit:
+                                    12
 
                             }
 
@@ -795,7 +750,8 @@ function drawHistoryChart(
 
                         y: {
 
-                            beginAtZero: false
+                            beginAtZero:
+                                false
 
                         }
 
@@ -829,21 +785,21 @@ function drawPredictionChart(data) {
 
 
     const history =
-        getHistoricalPrices(data);
+        getHistoricalPrices(
+            data
+        );
 
 
     const predictions =
-        getPredictions(data);
+        getPredictions(
+            data
+        );
 
 
     if (
         history.length === 0 ||
         predictions.length === 0
     ) {
-
-        console.warn(
-            "Prediction chart data unavailable"
-        );
 
         return;
 
@@ -930,7 +886,8 @@ function drawPredictionChart(data) {
 
                 data: {
 
-                    labels: labels,
+                    labels:
+                        labels,
 
                     datasets: [
 
@@ -942,11 +899,14 @@ function drawPredictionChart(data) {
                             data:
                                 historyData,
 
-                            borderWidth: 2,
+                            borderWidth:
+                                2,
 
-                            pointRadius: 0,
+                            pointRadius:
+                                0,
 
-                            tension: 0.2
+                            tension:
+                                0.2
 
                         },
 
@@ -958,16 +918,17 @@ function drawPredictionChart(data) {
                             data:
                                 predictionData,
 
-                            borderWidth: 3,
+                            borderWidth:
+                                3,
 
-                            borderDash: [
-                                6,
-                                5
-                            ],
+                            borderDash:
+                                [6, 5],
 
-                            pointRadius: 3,
+                            pointRadius:
+                                3,
 
-                            tension: 0.2
+                            tension:
+                                0.2
 
                         }
 
@@ -977,22 +938,25 @@ function drawPredictionChart(data) {
 
                 options: {
 
-                    responsive: true,
+                    responsive:
+                        true,
 
-                    maintainAspectRatio: false,
+                    maintainAspectRatio:
+                        false,
 
                     interaction: {
 
-                        mode: "index",
+                        mode:
+                            "index",
 
-                        intersect: false
+                        intersect:
+                            false
 
                     }
 
                 }
 
             }
-
         );
 
 }
@@ -1022,7 +986,9 @@ async function loadCompanyNews(symbol) {
 
 
     const company =
-        cleanSymbol(symbol);
+        cleanSymbol(
+            symbol
+        );
 
 
     try {
@@ -1039,7 +1005,7 @@ async function loadCompanyNews(symbol) {
         if (!response.ok) {
 
             throw new Error(
-                "News request failed"
+                "News request failed."
             );
 
         }
@@ -1106,17 +1072,13 @@ async function loadCompanyNews(symbol) {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
-
                                     ${title}
-
                                 </a>
 
                             </h3>
 
                             <div class="news-meta">
-
                                 ${source}
-
                             </div>
 
                         </article>
@@ -1127,7 +1089,6 @@ async function loadCompanyNews(symbol) {
                 .join("");
 
     }
-
 
     catch (error) {
 
@@ -1146,7 +1107,7 @@ async function loadCompanyNews(symbol) {
 
 
 // ============================================================
-// RISK ANALYSIS
+// RISK
 // ============================================================
 
 function calculateRisk(
@@ -1186,10 +1147,6 @@ function calculateRisk(
         );
 
 
-    // --------------------------------------------------------
-    // MARKET DIRECTION
-    // --------------------------------------------------------
-
     if (
         Number.isFinite(currentPrice) &&
         Number.isFinite(sma20) &&
@@ -1216,19 +1173,8 @@ function calculateRisk(
 
         }
 
-        else {
-
-            trend =
-                "Neutral";
-
-        }
-
     }
 
-
-    // --------------------------------------------------------
-    // CONFIDENCE
-    // --------------------------------------------------------
 
     if (
         predictions.length >= 2
@@ -1293,10 +1239,6 @@ function calculateRisk(
     }
 
 
-    // --------------------------------------------------------
-    // RISK
-    // --------------------------------------------------------
-
     if (
         Number.isFinite(rsi)
     ) {
@@ -1352,7 +1294,7 @@ function calculateRisk(
 
 
 // ============================================================
-// GET HISTORICAL PRICES
+// DATA HELPERS
 // ============================================================
 
 function getHistoricalPrices(data) {
@@ -1370,14 +1312,12 @@ function getHistoricalPrices(data) {
 
     return data.historical_prices
         .map(Number)
-        .filter(Number.isFinite);
+        .filter(
+            Number.isFinite
+        );
 
 }
 
-
-// ============================================================
-// GET PREDICTIONS
-// ============================================================
 
 function getPredictions(data) {
 
@@ -1394,13 +1334,15 @@ function getPredictions(data) {
 
     return data.predictions
         .map(Number)
-        .filter(Number.isFinite);
+        .filter(
+            Number.isFinite
+        );
 
 }
 
 
 // ============================================================
-// SET INDICATOR
+// INDICATOR
 // ============================================================
 
 function setIndicator(
@@ -1409,7 +1351,9 @@ function setIndicator(
 ) {
 
     const element =
-        document.getElementById(id);
+        document.getElementById(
+            id
+        );
 
 
     if (!element) {
@@ -1424,7 +1368,9 @@ function setIndicator(
 
 
     if (
-        !Number.isFinite(number)
+        !Number.isFinite(
+            number
+        )
     ) {
 
         element.textContent =
@@ -1442,7 +1388,7 @@ function setIndicator(
 
 
 // ============================================================
-// SET TEXT
+// TEXT
 // ============================================================
 
 function setText(
@@ -1451,7 +1397,9 @@ function setText(
 ) {
 
     const element =
-        document.getElementById(id);
+        document.getElementById(
+            id
+        );
 
 
     if (element) {
@@ -1475,7 +1423,9 @@ function formatPrice(value) {
 
 
     if (
-        !Number.isFinite(number)
+        !Number.isFinite(
+            number
+        )
     ) {
 
         return "—";
@@ -1488,9 +1438,13 @@ function formatPrice(value) {
         number.toLocaleString(
             "en-IN",
             {
-                minimumFractionDigits: 2,
 
-                maximumFractionDigits: 2
+                minimumFractionDigits:
+                    2,
+
+                maximumFractionDigits:
+                    2
+
             }
         )
     );
@@ -1509,7 +1463,9 @@ function formatPercent(value) {
 
 
     if (
-        !Number.isFinite(number)
+        !Number.isFinite(
+            number
+        )
     ) {
 
         return "—";
@@ -1527,7 +1483,7 @@ function formatPercent(value) {
 
 
 // ============================================================
-// CALCULATE PERCENTAGE
+// PERCENTAGE CHANGE
 // ============================================================
 
 function calculatePercentageChange(
@@ -1578,13 +1534,14 @@ function cleanSymbol(symbol) {
         .replace(
             ".BO",
             ""
-        );
+        )
+        .toUpperCase();
 
 }
 
 
 // ============================================================
-// FORMAT DATE
+// DATE
 // ============================================================
 
 function formatDateLabel(value) {
@@ -1614,11 +1571,16 @@ function formatDateLabel(value) {
     return date.toLocaleDateString(
         "en-IN",
         {
-            day: "2-digit",
 
-            month: "short",
+            day:
+                "2-digit",
 
-            year: "numeric"
+            month:
+                "short",
+
+            year:
+                "numeric"
+
         }
     );
 
@@ -1626,7 +1588,7 @@ function formatDateLabel(value) {
 
 
 // ============================================================
-// ESCAPE HTML
+// HTML ESCAPING
 // ============================================================
 
 function escapeHtml(value) {
@@ -1656,19 +1618,17 @@ function escapeHtml(value) {
 }
 
 
-// ============================================================
-// ESCAPE ATTRIBUTE
-// ============================================================
-
 function escapeAttribute(value) {
 
-    return escapeHtml(value);
+    return escapeHtml(
+        value
+    );
 
 }
 
 
 // ============================================================
-// SHOW DASHBOARD
+// DASHBOARD
 // ============================================================
 
 function showDashboard() {
@@ -1691,7 +1651,7 @@ function showDashboard() {
 
 
 // ============================================================
-// SHOW LOADING
+// LOADING
 // ============================================================
 
 function showLoading() {
@@ -1713,10 +1673,6 @@ function showLoading() {
 }
 
 
-// ============================================================
-// HIDE LOADING
-// ============================================================
-
 function hideLoading() {
 
     const loading =
@@ -1737,7 +1693,7 @@ function hideLoading() {
 
 
 // ============================================================
-// SHOW ERROR
+// ERROR
 // ============================================================
 
 function showError(message) {
@@ -1757,7 +1713,7 @@ function showError(message) {
     if (messageElement) {
 
         messageElement.textContent =
-            message;
+            String(message);
 
     }
 
@@ -1772,10 +1728,6 @@ function showError(message) {
 
 }
 
-
-// ============================================================
-// HIDE ERROR
-// ============================================================
 
 function hideError() {
 
