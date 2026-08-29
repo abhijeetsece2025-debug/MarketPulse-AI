@@ -1,5 +1,7 @@
 # ============================================================
-# MARKETPULSE AI - FASTAPI BACKEND
+# MARKETPULSE AI
+# COMPLETE FASTAPI BACKEND
+# Bayesian Stock Prediction + Technical Indicators + News
 # ============================================================
 
 from fastapi import FastAPI, Request
@@ -9,6 +11,10 @@ from fastapi.staticfiles import StaticFiles
 import os
 import numpy as np
 
+# Bayesian Regression without PyMC/PyTensor compilation
+from sklearn.linear_model import BayesianRidge
+from sklearn.preprocessing import StandardScaler
+
 
 # ============================================================
 # CREATE APP
@@ -17,7 +23,7 @@ import numpy as np
 app = FastAPI(
     title="MarketPulse AI",
     version="1.0.0",
-    description="Bayesian Stock Prediction and Market Analysis API"
+    description="Bayesian Stock Prediction and Market Risk Analysis"
 )
 
 
@@ -25,7 +31,9 @@ app = FastAPI(
 # PROJECT DIRECTORY
 # ============================================================
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
 
 
 # ============================================================
@@ -51,7 +59,7 @@ async def home():
         "index.html"
     )
 
-    if not os.path.isfile(index_file):
+    if not os.path.exists(index_file):
 
         return HTMLResponse(
             content="""
@@ -63,7 +71,10 @@ async def home():
             <body>
                 <h1>MarketPulse AI</h1>
                 <h2>index.html not found</h2>
-                <p>Please check your project files.</p>
+                <p>
+                    Please make sure index.html exists
+                    in the project folder.
+                </p>
             </body>
             </html>
             """,
@@ -91,17 +102,63 @@ async def health():
 
 
 # ============================================================
+# NORMALIZE STOCK SYMBOL
+# ============================================================
+
+def normalize_symbol(symbol):
+
+    symbol = str(
+        symbol or ""
+    ).strip().upper()
+
+    if not symbol:
+        return ""
+
+    if (
+        "." not in symbol
+        and not symbol.startswith("^")
+    ):
+        symbol = symbol + ".NS"
+
+    return symbol
+
+
+# ============================================================
+# SAFE NUMBER
+# ============================================================
+
+def safe_number(value):
+
+    try:
+
+        if value is None:
+            return None
+
+        number = float(value)
+
+        if not np.isfinite(number):
+            return None
+
+        return number
+
+    except Exception:
+
+        return None
+
+
+# ============================================================
 # PREDICT STOCK
 # ============================================================
 
 @app.post("/predict")
 async def predict(request: Request):
 
-    try:
+    print()
+    print("==========================================")
+    print("          PREDICTION REQUEST")
+    print("==========================================")
 
-        print("\n========================================")
-        print("PREDICTION REQUEST")
-        print("========================================")
+    try:
 
         # ----------------------------------------------------
         # READ JSON
@@ -129,9 +186,9 @@ async def predict(request: Request):
         # GET SYMBOL
         # ----------------------------------------------------
 
-        symbol = str(
+        symbol = normalize_symbol(
             body.get("symbol", "")
-        ).strip().upper()
+        )
 
 
         if not symbol:
@@ -145,19 +202,10 @@ async def predict(request: Request):
             )
 
 
-        # ----------------------------------------------------
-        # CONVERT TO NSE
-        # ----------------------------------------------------
-
-        if (
-            "." not in symbol
-            and not symbol.startswith("^")
-        ):
-
-            symbol = symbol + ".NS"
-
-
-        print("Stock:", symbol)
+        print(
+            "Analysing stock:",
+            symbol
+        )
 
 
         # ====================================================
@@ -172,31 +220,30 @@ async def predict(request: Request):
 
             try:
 
-                data = loader.prepare_stock_data(
+                data_frame = loader.prepare_stock_data(
                     symbol,
                     period="5y"
                 )
 
             except TypeError:
 
-                data = loader.prepare_stock_data(
+                data_frame = loader.prepare_stock_data(
                     symbol
                 )
 
-
         except Exception as error:
 
-            print("DATA LOADING ERROR:")
-            print(repr(error))
+            print(
+                "DATA LOADING ERROR:",
+                repr(error)
+            )
 
             return JSONResponse(
                 status_code=500,
                 content={
                     "success": False,
-                    "error": (
-                        "Unable to load stock data: "
-                        + str(error)
-                    )
+                    "error":
+                        f"Unable to load stock data: {str(error)}"
                 }
             )
 
@@ -205,47 +252,47 @@ async def predict(request: Request):
         # CHECK DATA
         # ----------------------------------------------------
 
-        if data is None:
+        if (
+            data_frame is None
+            or data_frame.empty
+        ):
 
             return JSONResponse(
                 status_code=404,
                 content={
                     "success": False,
-                    "error": f"No data found for {symbol}."
+                    "error":
+                        f"No stock data found for {symbol}."
                 }
             )
 
 
-        if data.empty:
+        print(
+            "Historical records:",
+            len(data_frame)
+        )
 
-            return JSONResponse(
-                status_code=404,
-                content={
-                    "success": False,
-                    "error": f"No stock data found for {symbol}."
-                }
-            )
-
-
-        print("Records loaded:", len(data))
-        print("Columns:", list(data.columns))
+        print(
+            "Columns:",
+            list(data_frame.columns)
+        )
 
 
         # ====================================================
         # FIND PRICE COLUMN
         # ====================================================
 
-        if "ClsPric" in data.columns:
+        if "ClsPric" in data_frame.columns:
 
             price_column = "ClsPric"
 
-        elif "Close" in data.columns:
+        elif "Close" in data_frame.columns:
 
             price_column = "Close"
 
-        elif "close" in data.columns:
+        elif "Adj Close" in data_frame.columns:
 
-            price_column = "close"
+            price_column = "Adj Close"
 
         else:
 
@@ -253,10 +300,8 @@ async def predict(request: Request):
                 status_code=500,
                 content={
                     "success": False,
-                    "error": (
-                        "Closing price column was not found. "
-                        f"Available columns: {list(data.columns)}"
-                    )
+                    "error":
+                        "Closing price column not found."
                 }
             )
 
@@ -265,12 +310,22 @@ async def predict(request: Request):
         # CLEAN DATA
         # ====================================================
 
-        clean_data = data.copy()
+        clean_data = data_frame.copy()
 
 
-        clean_data[price_column] = np.asarray(
-            clean_data[price_column],
-            dtype=float
+        clean_data[price_column] = (
+            clean_data[price_column]
+            .astype(str)
+            .str.replace(",", "", regex=False)
+        )
+
+
+        clean_data[price_column] = (
+            __import__("pandas")
+            .to_numeric(
+                clean_data[price_column],
+                errors="coerce"
+            )
         )
 
 
@@ -291,7 +346,8 @@ async def predict(request: Request):
                 status_code=404,
                 content={
                     "success": False,
-                    "error": "No valid stock prices found."
+                    "error":
+                        "No valid stock prices found."
                 }
             )
 
@@ -301,30 +357,28 @@ async def predict(request: Request):
         # ====================================================
 
         prices = [
-            float(x)
-            for x in clean_data[price_column].tolist()
-            if np.isfinite(float(x))
+
+            float(value)
+
+            for value in
+            clean_data[price_column].tolist()
+
+            if np.isfinite(float(value))
+
         ]
 
 
-        if len(prices) < 30:
+        if len(prices) < 60:
 
             return JSONResponse(
                 status_code=400,
                 content={
                     "success": False,
-                    "error": (
-                        "Not enough historical data "
-                        "to analyse this stock."
-                    )
+                    "error":
+                        "Not enough historical data. "
+                        "At least 60 records are required."
                 }
             )
-
-
-        current_price = float(prices[-1])
-
-
-        print("Current price:", current_price)
 
 
         # ====================================================
@@ -333,38 +387,67 @@ async def predict(request: Request):
 
         if "TradDt" in clean_data.columns:
 
-            dates = clean_data["TradDt"].tolist()
+            historical_dates = [
+
+                str(value)
+
+                for value in
+                clean_data["TradDt"].tolist()
+
+            ]
 
         elif "Date" in clean_data.columns:
 
-            dates = clean_data["Date"].tolist()
+            historical_dates = [
+
+                str(value)
+
+                for value in
+                clean_data["Date"].tolist()
+
+            ]
 
         else:
 
-            dates = list(
-                range(
-                    1,
-                    len(prices) + 1
-                )
-            )
+            historical_dates = [
+
+                str(i + 1)
+
+                for i in range(len(prices))
+
+            ]
 
 
-        historical_dates = [
-            str(x)
-            for x in dates
-        ]
+        # Make lengths equal
 
-
-        # Keep lengths equal
-
-        length = min(
+        minimum_length = min(
             len(prices),
             len(historical_dates)
         )
 
 
-        prices = prices[-length:]
-        historical_dates = historical_dates[-length:]
+        prices = prices[
+            -minimum_length:
+        ]
+
+        historical_dates = historical_dates[
+            -minimum_length:
+        ]
+
+
+        # ====================================================
+        # CURRENT PRICE
+        # ====================================================
+
+        current_price = float(
+            prices[-1]
+        )
+
+
+        print(
+            "Current price:",
+            current_price
+        )
 
 
         # ====================================================
@@ -380,6 +463,8 @@ async def predict(request: Request):
 
             indicator_data = clean_data.copy()
 
+
+            # indicators.py expects Close
 
             if "ClsPric" in indicator_data.columns:
 
@@ -462,36 +547,58 @@ async def predict(request: Request):
                         safe_number(
                             latest.get("Relative_Volume")
                         )
+
                 }
 
 
         except Exception as error:
 
-            print("INDICATOR ERROR:")
-            print(repr(error))
+            print(
+                "INDICATOR ERROR:",
+                repr(error)
+            )
+
+            indicators = {}
 
 
         # ====================================================
-        # BAYESIAN PREDICTION
+        # BAYESIAN REGRESSION
         # ====================================================
 
-        predictions = []
+        print()
+        print("------------------------------------------")
+        print("Starting Bayesian Regression...")
+        print("------------------------------------------")
 
 
         try:
 
-            print("\nStarting Bayesian model...")
+            # ------------------------------------------------
+            # USE RECENT DATA FOR TREND
+            # ------------------------------------------------
+
+            # Use up to the latest 250 trading days.
+            # This prevents very old prices from dominating
+            # the short-term forecast.
+
+            training_size = min(
+                len(prices),
+                250
+            )
 
 
-            from bayesian_stock import BayesianStockModel
+            training_prices = np.asarray(
+                prices[-training_size:],
+                dtype=float
+            )
 
 
             # ------------------------------------------------
-            # TRAINING DATA
+            # CREATE TIME FEATURE
             # ------------------------------------------------
 
             X = np.arange(
-                len(prices),
+                training_size,
                 dtype=float
             ).reshape(
                 -1,
@@ -499,32 +606,42 @@ async def predict(request: Request):
             )
 
 
-            y = np.asarray(
-                prices,
-                dtype=float
+            y = training_prices
+
+
+            # ------------------------------------------------
+            # SCALE INPUT
+            # ------------------------------------------------
+
+            scaler = StandardScaler()
+
+            X_scaled = scaler.fit_transform(
+                X
             )
 
 
             # ------------------------------------------------
-            # CREATE MODEL
+            # BAYESIAN RIDGE
             # ------------------------------------------------
 
-            model = BayesianStockModel()
+            bayesian_model = BayesianRidge(
+                n_iter=300,
+                tol=1e-6,
+                alpha_1=1e-6,
+                alpha_2=1e-6,
+                lambda_1=1e-6,
+                lambda_2=1e-6
+            )
 
 
             # ------------------------------------------------
-            # TRAIN MODEL
+            # TRAIN
             # ------------------------------------------------
 
-            print("Training Bayesian model...")
-
-            model.train(
-                X,
+            bayesian_model.fit(
+                X_scaled,
                 y
             )
-
-
-            print("Bayesian model trained.")
 
 
             # ------------------------------------------------
@@ -532,8 +649,8 @@ async def predict(request: Request):
             # ------------------------------------------------
 
             future_X = np.arange(
-                len(prices),
-                len(prices) + 5,
+                training_size,
+                training_size + 5,
                 dtype=float
             ).reshape(
                 -1,
@@ -541,71 +658,73 @@ async def predict(request: Request):
             )
 
 
+            future_X_scaled = (
+                scaler.transform(
+                    future_X
+                )
+            )
+
+
             # ------------------------------------------------
             # PREDICT
             # ------------------------------------------------
 
-            print("Generating predictions...")
-
-
-            result = model.predict(
-                future_X
+            prediction_result = (
+                bayesian_model.predict(
+                    future_X_scaled
+                )
             )
 
 
-            result = np.asarray(
-                result,
+            prediction_result = np.asarray(
+                prediction_result,
                 dtype=float
             ).flatten()
 
 
+            # ------------------------------------------------
+            # VALIDATE PREDICTIONS
+            # ------------------------------------------------
+
             predictions = [
 
-                float(x)
+                float(value)
 
-                for x in result
+                for value in prediction_result
 
-                if np.isfinite(x)
+                if np.isfinite(value)
 
             ]
 
 
-            # ------------------------------------------------
-            # ENSURE 5 VALUES
-            # ------------------------------------------------
-
-            if len(predictions) == 0:
+            if len(predictions) != 5:
 
                 raise ValueError(
-                    "Bayesian model returned no predictions."
+                    "Bayesian Regression did not "
+                    "produce exactly 5 predictions."
                 )
-
-
-            while len(predictions) < 5:
-
-                predictions.append(
-                    predictions[-1]
-                )
-
-
-            predictions = predictions[:5]
 
 
             # ------------------------------------------------
-            # SANITY CHECK
+            # SAFETY CHECK
             # ------------------------------------------------
 
-            predictions = [
+            # Predictions must be positive stock prices.
 
-                max(
-                    0.01,
-                    float(x)
+            if any(
+                value <= 0
+                for value in predictions
+            ):
+
+                raise ValueError(
+                    "Bayesian Regression produced "
+                    "an invalid stock price."
                 )
 
-                for x in predictions
 
-            ]
-
+            print(
+                "Bayesian Regression successful."
+            )
 
             print(
                 "Predictions:",
@@ -615,26 +734,63 @@ async def predict(request: Request):
 
         except Exception as error:
 
-            print("\n========================================")
-            print("BAYESIAN PREDICTION ERROR")
-            print("========================================")
-            print(repr(error))
-            print("========================================")
+            print()
+            print("------------------------------------------")
+            print("BAYESIAN REGRESSION ERROR")
+            print("------------------------------------------")
+            print(
+                repr(error)
+            )
+            print("------------------------------------------")
 
 
-            # ------------------------------------------------
-            # SAFE FALLBACK
-            # ------------------------------------------------
+            # IMPORTANT:
+            # Do NOT silently return five identical prices.
+            # That was the reason the dashboard showed 0.00%.
 
-            predictions = [
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "success": False,
+                    "error":
+                        "Bayesian Regression failed: "
+                        + str(error)
+                }
+            )
 
-                current_price,
-                current_price,
-                current_price,
-                current_price,
+
+        # ====================================================
+        # FORECAST CHANGE
+        # ====================================================
+
+        final_prediction = float(
+            predictions[-1]
+        )
+
+
+        forecast_change = (
+            (
+                final_prediction -
                 current_price
+            )
+            /
+            current_price
+        ) * 100
 
-            ]
+
+        # ====================================================
+        # FUTURE LABELS
+        # ====================================================
+
+        future_labels = [
+
+            "Day 1",
+            "Day 2",
+            "Day 3",
+            "Day 4",
+            "Day 5"
+
+        ]
 
 
         # ====================================================
@@ -652,27 +808,36 @@ async def predict(request: Request):
             "current_price":
                 current_price,
 
+            "forecast_price":
+                final_prediction,
+
+            "forecast_change":
+                float(forecast_change),
+
             "historical_records":
                 len(prices),
 
             "historical_dates":
                 historical_dates,
 
-            "historical_prices":
-                prices,
+            "historical_prices": [
 
-            "predictions":
-                predictions,
+                float(value)
 
-            "future_labels": [
-
-                "Day 1",
-                "Day 2",
-                "Day 3",
-                "Day 4",
-                "Day 5"
+                for value in prices
 
             ],
+
+            "predictions": [
+
+                float(value)
+
+                for value in predictions
+
+            ],
+
+            "future_labels":
+                future_labels,
 
             "indicators":
                 indicators
@@ -680,14 +845,18 @@ async def predict(request: Request):
         }
 
 
-        print("\nPrediction completed successfully.")
-
+        print()
+        print("==========================================")
+        print("Prediction completed successfully.")
+        print("Stock:", symbol)
+        print("Current:", current_price)
+        print("Forecast:", predictions)
         print(
-            "Final predictions:",
-            predictions
+            "Change:",
+            round(forecast_change, 2),
+            "%"
         )
-
-        print("========================================\n")
+        print("==========================================")
 
 
         return response
@@ -695,11 +864,14 @@ async def predict(request: Request):
 
     except Exception as error:
 
-        print("\n========================================")
-        print("PREDICTION API ERROR")
-        print("========================================")
-        print(repr(error))
-        print("========================================")
+        print()
+        print("==========================================")
+        print("PREDICTION ERROR")
+        print("==========================================")
+        print(
+            repr(error)
+        )
+        print("==========================================")
 
 
         return JSONResponse(
@@ -727,22 +899,21 @@ async def company_news(symbol: str):
 
     try:
 
+        print(
+            "Loading news for:",
+            symbol
+        )
+
+
+        from news import get_company_news
+
+
         clean_symbol = (
             str(symbol)
             .replace(".NS", "")
             .replace(".BO", "")
             .upper()
-            .strip()
         )
-
-
-        print(
-            "Loading news:",
-            clean_symbol
-        )
-
-
-        from news import get_company_news
 
 
         articles = get_company_news(
@@ -792,35 +963,6 @@ async def company_news(symbol: str):
 
 
 # ============================================================
-# SAFE NUMBER
-# ============================================================
-
-def safe_number(value):
-
-    try:
-
-        if value is None:
-
-            return None
-
-
-        number = float(value)
-
-
-        if not np.isfinite(number):
-
-            return None
-
-
-        return number
-
-
-    except Exception:
-
-        return None
-
-
-# ============================================================
 # STARTUP
 # ============================================================
 
@@ -829,16 +971,49 @@ async def startup():
 
     print()
     print("==========================================")
-    print("          MARKETPULSE AI")
+    print("          MARKETPULSE AI STARTED")
     print("==========================================")
-    print("API started successfully")
+
+    print(
+        "Dashboard:"
+    )
+
+    print(
+        "http://127.0.0.1:8000"
+    )
+
     print()
-    print("Dashboard:")
-    print("http://127.0.0.1:8000")
+
+    print(
+        "Health:"
+    )
+
+    print(
+        "http://127.0.0.1:8000/health"
+    )
+
     print()
-    print("Health:")
-    print("http://127.0.0.1:8000/health")
+
+    print(
+        "Swagger:"
+    )
+
+    print(
+        "http://127.0.0.1:8000/docs"
+    )
+
     print()
-    print("Swagger:")
-    print("http://127.0.0.1:8000/docs")
-    print("==========================================")
+
+    print(
+        "News:"
+    )
+
+    print(
+        "http://127.0.0.1:8000/news/RELIANCE"
+    )
+
+    print(
+        "=========================================="
+    )
+
+    print()
