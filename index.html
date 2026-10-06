@@ -10,8 +10,75 @@
         content="width=device-width, initial-scale=1.0"
     >
 
+    <meta
+        name="theme-color"
+        content="#111827"
+    >
+
+    <meta
+        name="description"
+        content="MarketPulse AI - Bayesian Stock Prediction and Market Risk Analysis"
+    >
+
+    <!-- PWA -->
+    <link
+        rel="manifest"
+        href="/manifest.json"
+    >
+
+    <!-- Android / Chrome -->
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <!-- iOS / iPhone / iPad -->
+    <meta
+        name="apple-mobile-web-app-capable"
+        content="yes"
+    >
+
+    <meta
+        name="apple-mobile-web-app-status-bar-style"
+        content="black-translucent"
+    >
+
+    <meta
+        name="apple-mobile-web-app-title"
+        content="MarketPulse AI"
+    >
+
+    <!-- App icons -->
+    <link
+        rel="icon"
+        type="image/png"
+        sizes="48x48"
+        href="/icons/launchericon-48x48.png"
+    >
+
+    <link
+        rel="icon"
+        type="image/png"
+        sizes="96x96"
+        href="/icons/launchericon-96x96.png"
+    >
+
+    <link
+        rel="icon"
+        type="image/png"
+        sizes="192x192"
+        href="/icons/launchericon-192x192.png"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        sizes="192x192"
+        href="/icons/launchericon-192x192.png"
+    >
+
     <title>MarketPulse AI</title>
 
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -33,8 +100,30 @@
             padding: 22px;
         }
 
+        .header-content {
+            width: 92%;
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .app-logo {
+            width: 58px;
+            height: 58px;
+            border-radius: 14px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
         header h1 {
             margin: 0;
+        }
+
+        header p {
+            margin: 6px 0 0 0;
+            color: #d1d5db;
         }
 
         .container {
@@ -144,6 +233,7 @@
 
         .chart-container {
             height: 400px;
+            position: relative;
         }
 
         .years {
@@ -209,6 +299,52 @@
             font-size: 13px;
         }
 
+        @media (max-width: 700px) {
+
+            header {
+                padding: 16px;
+            }
+
+            .header-content {
+                width: 94%;
+            }
+
+            .app-logo {
+                width: 48px;
+                height: 48px;
+            }
+
+            header h1 {
+                font-size: 22px;
+            }
+
+            header p {
+                font-size: 13px;
+            }
+
+            .container {
+                width: 94%;
+                margin: 18px auto;
+            }
+
+            .search-box {
+                flex-direction: column;
+            }
+
+            .search-box button {
+                width: 100%;
+            }
+
+            .chart-container {
+                height: 300px;
+            }
+
+            .value {
+                font-size: 21px;
+            }
+
+        }
+
     </style>
 
 </head>
@@ -218,16 +354,32 @@
 
 <header>
 
-    <h1>MarketPulse AI</h1>
+    <div class="header-content">
 
-    <p>
-        Bayesian Stock Prediction & Market Risk Analysis
-    </p>
+        <!-- Your existing app logo -->
+        <img
+            class="app-logo"
+            src="/icons/launchericon-192x192.png"
+            alt="MarketPulse AI Logo"
+        >
+
+        <div>
+
+            <h1>MarketPulse AI</h1>
+
+            <p>
+                Bayesian Stock Prediction & Market Risk Analysis
+            </p>
+
+        </div>
+
+    </div>
 
 </header>
 
 
 <div class="container">
+
 
     <!-- SEARCH -->
 
@@ -237,10 +389,13 @@
             id="stockSymbol"
             type="text"
             placeholder="Enter stock symbol e.g. RELIANCE"
+            autocomplete="off"
         >
 
         <button id="analyzeButton">
+
             Analyze
+
         </button>
 
     </div>
@@ -283,7 +438,9 @@
         id="loading"
         class="loading hidden"
     >
+
         Analysing stock using Bayesian AI...
+
     </div>
 
 
@@ -308,13 +465,16 @@
         class="hidden"
     >
 
+
         <div class="section">
 
             <h2 id="stockName">
                 Stock
             </h2>
 
+
             <div class="summary-grid">
+
 
                 <div class="card">
 
@@ -371,6 +531,7 @@
 
                 </div>
 
+
             </div>
 
         </div>
@@ -382,7 +543,9 @@
 
             <h2>Historical Price</h2>
 
+
             <div class="years">
+
 
                 <button
                     class="year-button active"
@@ -391,12 +554,14 @@
                     5 Years
                 </button>
 
+
                 <button
                     class="year-button"
                     data-year="2026"
                 >
                     2026
                 </button>
+
 
                 <button
                     class="year-button"
@@ -405,12 +570,14 @@
                     2025
                 </button>
 
+
                 <button
                     class="year-button"
                     data-year="2024"
                 >
                     2024
                 </button>
+
 
                 <button
                     class="year-button"
@@ -419,6 +586,7 @@
                     2023
                 </button>
 
+
                 <button
                     class="year-button"
                     data-year="2022"
@@ -426,7 +594,9 @@
                     2022
                 </button>
 
+
             </div>
+
 
             <div class="chart-card">
 
@@ -447,6 +617,7 @@
 
             <h2>Bayesian Prediction</h2>
 
+
             <div class="chart-card">
 
                 <div class="chart-container">
@@ -466,67 +637,201 @@
 
             <h2>Technical Indicators</h2>
 
+
             <div class="indicator-grid">
 
-                <div class="indicator">
-                    <div class="indicator-title">RSI (14)</div>
-                    <div id="rsi" class="indicator-value">—</div>
-                </div>
 
                 <div class="indicator">
-                    <div class="indicator-title">SMA (20)</div>
-                    <div id="sma20" class="indicator-value">—</div>
+
+                    <div class="indicator-title">
+                        RSI (14)
+                    </div>
+
+                    <div
+                        id="rsi"
+                        class="indicator-value"
+                    >
+                        —
+                    </div>
+
                 </div>
 
-                <div class="indicator">
-                    <div class="indicator-title">SMA (50)</div>
-                    <div id="sma50" class="indicator-value">—</div>
-                </div>
 
                 <div class="indicator">
-                    <div class="indicator-title">EMA (20)</div>
-                    <div id="ema20" class="indicator-value">—</div>
+
+                    <div class="indicator-title">
+                        SMA (20)
+                    </div>
+
+                    <div
+                        id="sma20"
+                        class="indicator-value"
+                    >
+                        —
+                    </div>
+
                 </div>
 
-                <div class="indicator">
-                    <div class="indicator-title">EMA (50)</div>
-                    <div id="ema50" class="indicator-value">—</div>
-                </div>
 
                 <div class="indicator">
-                    <div class="indicator-title">MACD</div>
-                    <div id="macd" class="indicator-value">—</div>
+
+                    <div class="indicator-title">
+                        SMA (50)
+                    </div>
+
+                    <div
+                        id="sma50"
+                        class="indicator-value"
+                    >
+                        —
+                    </div>
+
                 </div>
 
-                <div class="indicator">
-                    <div class="indicator-title">MACD Signal</div>
-                    <div id="macdSignal" class="indicator-value">—</div>
-                </div>
 
                 <div class="indicator">
-                    <div class="indicator-title">Volatility (20)</div>
-                    <div id="volatility" class="indicator-value">—</div>
+
+                    <div class="indicator-title">
+                        EMA (20)
+                    </div>
+
+                    <div
+                        id="ema20"
+                        class="indicator-value"
+                    >
+                        —
+                    </div>
+
                 </div>
 
-                <div class="indicator">
-                    <div class="indicator-title">Momentum (10)</div>
-                    <div id="momentum" class="indicator-value">—</div>
-                </div>
 
                 <div class="indicator">
-                    <div class="indicator-title">ATR (14)</div>
-                    <div id="atr" class="indicator-value">—</div>
+
+                    <div class="indicator-title">
+                        EMA (50)
+                    </div>
+
+                    <div
+                        id="ema50"
+                        class="indicator-value"
+                    >
+                        —
+                    </div>
+
                 </div>
 
-                <div class="indicator">
-                    <div class="indicator-title">Stochastic %K</div>
-                    <div id="stochastic" class="indicator-value">—</div>
-                </div>
 
                 <div class="indicator">
-                    <div class="indicator-title">Relative Volume</div>
-                    <div id="relativeVolume" class="indicator-value">—</div>
+
+                    <div class="indicator-title">
+                        MACD
+                    </div>
+
+                    <div
+                        id="macd"
+                        class="indicator-value"
+                    >
+                        —
+                    </div>
+
                 </div>
+
+
+                <div class="indicator">
+
+                    <div class="indicator-title">
+                        MACD Signal
+                    </div>
+
+                    <div
+                        id="macdSignal"
+                        class="indicator-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="indicator">
+
+                    <div class="indicator-title">
+                        Volatility (20)
+                    </div>
+
+                    <div
+                        id="volatility"
+                        class="indicator-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="indicator">
+
+                    <div class="indicator-title">
+                        Momentum (10)
+                    </div>
+
+                    <div
+                        id="momentum"
+                        class="indicator-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="indicator">
+
+                    <div class="indicator-title">
+                        ATR (14)
+                    </div>
+
+                    <div
+                        id="atr"
+                        class="indicator-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="indicator">
+
+                    <div class="indicator-title">
+                        Stochastic %K
+                    </div>
+
+                    <div
+                        id="stochastic"
+                        class="indicator-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="indicator">
+
+                    <div class="indicator-title">
+                        Relative Volume
+                    </div>
+
+                    <div
+                        id="relativeVolume"
+                        class="indicator-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
 
             </div>
 
@@ -539,7 +844,9 @@
 
             <h2>Market Risk Analysis</h2>
 
+
             <div class="summary-grid">
+
 
                 <div class="card">
 
@@ -554,6 +861,7 @@
 
                 </div>
 
+
                 <div class="card">
 
                     <h3>Prediction Confidence</h3>
@@ -566,6 +874,7 @@
                     </div>
 
                 </div>
+
 
                 <div class="card">
 
@@ -580,6 +889,7 @@
 
                 </div>
 
+
             </div>
 
         </div>
@@ -591,6 +901,7 @@
 
             <h2>Latest Company News</h2>
 
+
             <div id="newsContainer">
 
                 <p>
@@ -601,12 +912,52 @@
 
         </div>
 
+
     </div>
 
 </div>
 
 
+<!-- Your existing working JavaScript -->
 <script src="/static/script.js"></script>
+
+
+<!-- PWA SERVICE WORKER -->
+
+<script>
+
+    if ("serviceWorker" in navigator) {
+
+        window.addEventListener(
+            "load",
+            function () {
+
+                navigator.serviceWorker
+                    .register("/service-worker.js")
+                    .then(function (registration) {
+
+                        console.log(
+                            "MarketPulse AI service worker registered:",
+                            registration.scope
+                        );
+
+                    })
+                    .catch(function (error) {
+
+                        console.error(
+                            "Service worker registration failed:",
+                            error
+                        );
+
+                    });
+
+            }
+        );
+
+    }
+
+</script>
+
 
 </body>
 

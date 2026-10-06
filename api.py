@@ -7,6 +7,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 import os
 import numpy as np
@@ -45,6 +46,87 @@ app.mount(
     StaticFiles(directory=BASE_DIR),
     name="static"
 )
+
+
+# ============================================================
+# PWA ICONS
+# ============================================================
+
+ICONS_DIR = os.path.join(
+    BASE_DIR,
+    "icons"
+)
+
+if os.path.exists(ICONS_DIR):
+
+    app.mount(
+        "/icons",
+        StaticFiles(directory=ICONS_DIR),
+        name="icons"
+    )
+
+else:
+
+    print(
+        "WARNING: icons folder not found:",
+        ICONS_DIR
+    )
+
+
+# ============================================================
+# PWA MANIFEST
+# ============================================================
+
+@app.get("/manifest.json")
+async def manifest():
+
+    manifest_file = os.path.join(
+        BASE_DIR,
+        "manifest.json"
+    )
+
+    if not os.path.exists(manifest_file):
+
+        return JSONResponse(
+            status_code=404,
+            content={
+                "success": False,
+                "error": "manifest.json not found."
+            }
+        )
+
+    return FileResponse(
+        manifest_file,
+        media_type="application/manifest+json"
+    )
+
+
+# ============================================================
+# SERVICE WORKER
+# ============================================================
+
+@app.get("/service-worker.js")
+async def service_worker():
+
+    service_worker_file = os.path.join(
+        BASE_DIR,
+        "service-worker.js"
+    )
+
+    if not os.path.exists(service_worker_file):
+
+        return JSONResponse(
+            status_code=404,
+            content={
+                "success": False,
+                "error": "service-worker.js not found."
+            }
+        )
+
+    return FileResponse(
+        service_worker_file,
+        media_type="application/javascript"
+    )
 
 
 # ============================================================
@@ -107,6 +189,15 @@ async def health():
 
 
 # ============================================================
+# REQUEST MODEL
+# ============================================================
+
+class PredictionRequest(BaseModel):
+
+    symbol: str
+
+
+# ============================================================
 # NORMALIZE STOCK SYMBOL
 # ============================================================
 
@@ -156,11 +247,28 @@ def safe_number(value):
 
 
 # ============================================================
+# FIND OHLC COLUMN
+# ============================================================
+
+def find_column(data_frame, possible_names):
+
+    for column in possible_names:
+
+        if column in data_frame.columns:
+
+            return column
+
+    return None
+
+
+# ============================================================
 # PREDICT STOCK
 # ============================================================
 
 @app.post("/predict")
-async def predict(request: Request):
+async def predict(
+    request_data: PredictionRequest
+):
 
     print()
     print("==========================================")
@@ -174,20 +282,7 @@ async def predict(request: Request):
         # READ REQUEST
         # ====================================================
 
-        try:
-
-            body = await request.json()
-
-        except Exception:
-
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "success": False,
-                    "error": "Invalid JSON request."
-                }
-            )
-
+        body = request_data.model_dump()
 
         print(
             "Request:",
@@ -372,18 +467,21 @@ async def predict(request: Request):
         # HISTORICAL PRICES
         # ====================================================
 
-        prices = [
+        prices = []
 
-            float(value)
+        for value in clean_data[price_column].tolist():
 
-            for value in
-            clean_data[price_column].tolist()
+            try:
 
-            if np.isfinite(
-                float(value)
-            )
+                number = float(value)
 
-        ]
+                if np.isfinite(number):
+
+                    prices.append(number)
+
+            except Exception:
+
+                continue
 
 
         if len(prices) < 60:
@@ -437,7 +535,220 @@ async def predict(request: Request):
             ]
 
 
-        # Keep equal lengths
+        # ====================================================
+        # REAL OHLC DATA FOR CANDLESTICK CHART
+        # ====================================================
+
+        print()
+        print("------------------------------------------")
+        print("Preparing OHLC candlestick data...")
+        print("------------------------------------------")
+
+
+        # ----------------------------------------------------
+        # Find Open column
+        # ----------------------------------------------------
+
+        open_column = find_column(
+            clean_data,
+            [
+                "Open",
+                "OpnPric",
+                "open",
+                "OPEN"
+            ]
+        )
+
+
+        # ----------------------------------------------------
+        # Find High column
+        # ----------------------------------------------------
+
+        high_column = find_column(
+            clean_data,
+            [
+                "High",
+                "HghPric",
+                "HghPrice",
+                "high",
+                "HIGH"
+            ]
+        )
+
+
+        # ----------------------------------------------------
+        # Find Low column
+        # ----------------------------------------------------
+
+        low_column = find_column(
+            clean_data,
+            [
+                "Low",
+                "LwPric",
+                "LwPrice",
+                "low",
+                "LOW"
+            ]
+        )
+
+
+        # ----------------------------------------------------
+        # Close column
+        # ----------------------------------------------------
+
+        close_column = price_column
+
+
+        historical_ohlc = []
+
+
+        if (
+            open_column is not None
+            and high_column is not None
+            and low_column is not None
+        ):
+
+            print(
+                "Open column:",
+                open_column
+            )
+
+            print(
+                "High column:",
+                high_column
+            )
+
+            print(
+                "Low column:",
+                low_column
+            )
+
+            print(
+                "Close column:",
+                close_column
+            )
+
+
+            # ------------------------------------------------
+            # Convert OHLC values to numeric
+            # ------------------------------------------------
+
+            clean_data[open_column] = pd.to_numeric(
+                clean_data[open_column],
+                errors="coerce"
+            )
+
+            clean_data[high_column] = pd.to_numeric(
+                clean_data[high_column],
+                errors="coerce"
+            )
+
+            clean_data[low_column] = pd.to_numeric(
+                clean_data[low_column],
+                errors="coerce"
+            )
+
+            clean_data[close_column] = pd.to_numeric(
+                clean_data[close_column],
+                errors="coerce"
+            )
+
+
+            # ------------------------------------------------
+            # Create OHLC records
+            # ------------------------------------------------
+
+            for index, row in clean_data.iterrows():
+
+                open_price = safe_number(
+                    row.get(open_column)
+                )
+
+                high_price = safe_number(
+                    row.get(high_column)
+                )
+
+                low_price = safe_number(
+                    row.get(low_column)
+                )
+
+                close_price = safe_number(
+                    row.get(close_column)
+                )
+
+
+                # ------------------------------------------------
+                # Date
+                # ------------------------------------------------
+
+                if "TradDt" in clean_data.columns:
+
+                    date_value = row.get(
+                        "TradDt"
+                    )
+
+                elif "Date" in clean_data.columns:
+
+                    date_value = row.get(
+                        "Date"
+                    )
+
+                else:
+
+                    date_value = index
+
+
+                # ------------------------------------------------
+                # Only add valid candles
+                # ------------------------------------------------
+
+                if (
+                    open_price is not None
+                    and high_price is not None
+                    and low_price is not None
+                    and close_price is not None
+                ):
+
+                    historical_ohlc.append({
+
+                        "date":
+                            str(date_value),
+
+                        "open":
+                            open_price,
+
+                        "high":
+                            high_price,
+
+                        "low":
+                            low_price,
+
+                        "close":
+                            close_price
+
+                    })
+
+
+        else:
+
+            print(
+                "WARNING: Complete OHLC columns were not found."
+            )
+
+            print(
+                "Candlestick data will be empty."
+            )
+
+
+        print(
+            "Candlestick records:",
+            len(historical_ohlc)
+        )
+
+
+        # ====================================================
+        # KEEP EQUAL LENGTHS
+        # ====================================================
 
         minimum_length = min(
             len(prices),
@@ -675,10 +986,6 @@ async def predict(request: Request):
             # ------------------------------------------------
             # BAYESIAN RIDGE MODEL
             # ------------------------------------------------
-            # IMPORTANT:
-            # Use max_iter, NOT n_iter.
-            # This works with current scikit-learn.
-            # ------------------------------------------------
 
             bayesian_model = BayesianRidge(
 
@@ -801,14 +1108,13 @@ async def predict(request: Request):
             print("------------------------------------------")
             print("BAYESIAN REGRESSION ERROR")
             print("------------------------------------------")
+
             print(
                 repr(error)
             )
+
             print("------------------------------------------")
 
-
-            # Do not return fake identical predictions.
-            # Return the actual error instead.
 
             return JSONResponse(
                 status_code=500,
@@ -869,7 +1175,8 @@ async def predict(request: Request):
 
         response = {
 
-            "success": True,
+            "success":
+                True,
 
             "stock":
                 symbol,
@@ -902,6 +1209,14 @@ async def predict(request: Request):
 
             ],
 
+            # =================================================
+            # NEW:
+            # REAL OHLC DATA FOR CANDLESTICK CHART
+            # =================================================
+
+            "historical_ohlc":
+                historical_ohlc,
+
             "predictions": [
 
                 float(value)
@@ -933,6 +1248,12 @@ async def predict(request: Request):
             ),
             "%"
         )
+
+        print(
+            "OHLC records:",
+            len(historical_ohlc)
+        )
+
         print("==========================================")
 
 
@@ -1088,6 +1409,36 @@ async def startup():
     print()
 
     print(
+        "Service Worker:"
+    )
+
+    print(
+        "http://127.0.0.1:8000/service-worker.js"
+    )
+
+    print()
+
+    print(
+        "Manifest:"
+    )
+
+    print(
+        "http://127.0.0.1:8000/manifest.json"
+    )
+
+    print()
+
+    print(
+        "App Icon:"
+    )
+
+    print(
+        "http://127.0.0.1:8000/icons/launchericon-192x192.png"
+    )
+
+    print()
+
+    print(
         "Swagger:"
     )
 
@@ -1106,5 +1457,6 @@ async def startup():
     )
 
     print()
+
     print("==========================================")
     print()

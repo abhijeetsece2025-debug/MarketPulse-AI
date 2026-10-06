@@ -1,0 +1,50 @@
+{
+  "name": "MarketPulse AI",
+  "short_name": "MarketPulse",
+  "id": "marketpulse-ai",
+  "start_url": "https://marketpulse-ai-2tfo.onrender.com/",
+  "scope": "https://marketpulse-ai-2tfo.onrender.com/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "description": "MarketPulse AI is an AI-powered stock market analysis and prediction platform using Bayesian Regression, technical indicators, market data, and prediction uncertainty to help users understand stock market trends.",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": [
+    "business",
+    "finance"
+  ],
+  "icons": [
+    {
+      "src": "/icons/launchericon-48x48.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/launchericon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/launchericon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/launchericon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/launchericon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/launchericon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
